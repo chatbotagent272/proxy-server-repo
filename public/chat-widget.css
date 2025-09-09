@@ -109,7 +109,7 @@
 
 .chat-widget-input-area {
     display: flex;
-    align-items: center; /* Vertically align items in the input area */
+    align-items: center;
     padding: 1rem;
     border-top: 1px solid #e2e8f0;
 }
@@ -131,18 +131,17 @@
     width: 44px;
     height: 44px;
     flex-shrink: 0;
-
-    /* Set the button as the positioning context for the icon */
     position: relative;
 }
 
-/* Forcefully center the SVG icon using absolute positioning */
-.chat-widget-input-area button svg {
+/* Use a specific class for the icon for better targeting */
+.chat-widget-send-icon {
     width: 24px;
     height: 24px;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    color: white; /* Set the color here instead of inline */
 }
 
