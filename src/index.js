@@ -1,6 +1,5 @@
-const express = require('express');
-const cors = require('cors');
-const fetch = require('node-fetch');
+import express from 'express';
+import cors from 'cors';
 
 const app = express();
 
@@ -9,11 +8,10 @@ app.use(express.json());
 app.use(cors());
 
 // This reads the secret URL you stored in Vercel's environment variables
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_MRWOO;
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_MRWOO; // Using your custom variable name
 
 // The API endpoint the chatbot widget will call
 app.post('/api/chat', async (req, res) => {
-  // Check if the webhook URL is configured
   if (!N8N_WEBHOOK_URL) {
     return res.status(500).json({ error: 'Webhook URL is not configured.' });
   }
@@ -38,5 +36,5 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Export the app for Vercel
-module.exports = app;
+// Export the app for Vercel using the new syntax
+export default app;
