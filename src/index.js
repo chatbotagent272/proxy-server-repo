@@ -10,6 +10,19 @@ app.use(cors());
 // This reads the secret URL you stored in Vercel's environment variables
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_MRWOO; // Using your custom variable name
 
+// This block correctly prepares and sends the request to n8n
+const response = await fetch(n8nWebhookUrl, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(req.body),
+});
+
+// This block handles the response from n8n
+const responseData = await response.json();
+res.status(200).json(responseData);
+
 // The API endpoint the chatbot widget will call
 app.post('/api/chat', async (req, res) => {
   if (!N8N_WEBHOOK_URL) {
