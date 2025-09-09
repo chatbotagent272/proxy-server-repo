@@ -15,10 +15,22 @@
     cursor: pointer;
     z-index: 9999;
     transition: transform 0.2s ease;
+
+    /* Use Flexbox to center the icon inside */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .chat-widget-button:hover {
     transform: scale(1.1);
+}
+
+/* Style for the icon inside the main button */
+.chat-widget-button-icon {
+    width: 28px; /* Slightly larger for the main button */
+    height: 28px;
+    color: white;
 }
 
 .chat-widget-panel {
@@ -96,7 +108,7 @@
 
 .chat-widget-message.assistant {
     background-color: #f1f5f9;
-    color: #1e2_93b;
+    color: #1e293b;
     align-self: flex-start;
 }
 
@@ -131,17 +143,16 @@
     width: 44px;
     height: 44px;
     flex-shrink: 0;
-    position: relative;
+    
+    /* Use Flexbox to center the icon inside */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Use a specific class for the icon for better targeting */
+/* Style for the icon inside the send button */
 .chat-widget-send-icon {
     width: 24px;
     height: 24px;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: white; /* Set the color here instead of inline */
+    color: white;
 }
-
