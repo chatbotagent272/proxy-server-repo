@@ -20,13 +20,17 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     // Check for a session ID from the widget, or generate a new one.
-    const sessionId = req.body.sessionId || crypto.randomUUID();
+    const sessionId = req.body.sessionId || req.body.user?.sessionId || crypto.randomUUID();
 
-    // Construct the payload n8n expects, including the session key.
-    const payload = {
-      ...req.body, // Keep all original data from the widget (like the message)
-      key: sessionId, // Add the session ID under the 'key' parameter for n8n
+    // Construct the payload with the nested user object n8n expects.
+    const payload = { ...req.body };
+    payload.user = {
+      ...(payload.user || {}),
+      sessionId: sessionId
     };
+    // Clean up top-level sessionId to avoid redundancy
+    delete payload.sessionId;
+
 
     // This block correctly prepares and sends the request to n8n
     const response = await fetch(n8nWebhookUrl, {
@@ -35,7 +39,7 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      // Send the new payload with the session key
+      // Send the new payload with the nested user.sessionId
       body: JSON.stringify(payload),
     });
 
@@ -68,4 +72,3 @@ app.post('/api/chat', async (req, res) => {
 
 // Export the app for Vercel
 export default app;
-
