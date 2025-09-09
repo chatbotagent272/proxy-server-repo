@@ -126,23 +126,23 @@
     background-color: var(--chat-widget-primary-color);
     color: white;
     border: none;
-    border-radius: 50%; /* Make the button a circle */
+    border-radius: 50%;
     cursor: pointer;
-    width: 44px; /* Set a fixed width */
-    height: 44px; /* Set a fixed height */
-    flex-shrink: 0; /* Prevent the button from shrinking */
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
 
-    /* Add flex properties to center the icon */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Set the button as the positioning context for the icon */
+    position: relative;
 }
 
-/* Add this new rule to specifically style the SVG icon */
+/* Forcefully center the SVG icon using absolute positioning */
 .chat-widget-input-area button svg {
-    width: 24px; /* Adjust size as needed */
-    height: 24px; /* Adjust size as needed */
-    margin: 0;
-    padding: 0;
+    width: 24px;
+    height: 24px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
