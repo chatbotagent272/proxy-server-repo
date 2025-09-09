@@ -1,6 +1,8 @@
 (function(window) {
     'use strict';
 
+    const SESSION_STATE_KEY = 'chat_widget_session_state';
+
     class ChatWidget {
         constructor(config) {
             this.config = Object.assign({
@@ -8,15 +10,13 @@
                 companyName: 'Support',
                 logoUrl: '',
                 welcomeMessage: 'Hello! How can we help?',
-                apiUrl: 'https://proxy-server-repo.vercel.app/api/chat', // Default API URL
+                apiUrl: 'https://proxy-server-repo.vercel.app/api/chat',
                 container: 'body'
             }, config);
             
             this.elements = {};
-            this.isOpen = false;
+            this.state = this.loadState(); // Load history and open state
             this.isThinking = false;
-            // Use sessionStorage to maintain the session across page reloads
-            this.sessionId = this.getSessionId();
         }
 
         init() {
@@ -37,21 +37,19 @@
             }
             
             this.applyTheme();
+            this.restoreUIState(); // Restore UI based on loaded state
             return this;
         }
 
         createElements() {
-            // Main button to open the widget
             this.elements.button = this.createElement('button', {
                 className: 'chat-widget-button',
                 ariaLabel: 'Toggle Chat Window',
-                innerHTML: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: white;"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>`
+                innerHTML: `<svg class="chat-widget-button-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>`
             });
 
-            // Main chat panel
             this.elements.panel = this.createElement('div', { className: 'chat-widget-panel' });
             
-            // Create and append header, messages container, and input area safely
             const header = this.createHeader();
             const messagesContainer = this.createMessagesContainer();
             const inputArea = this.createInputArea();
@@ -62,26 +60,19 @@
         }
         
         createHeader() {
+            // ... (code is identical to previous version, omitted for brevity)
             const header = this.createElement('div', { className: 'chat-widget-header' });
             const avatarDiv = this.createElement('div', { className: 'chat-widget-header-avatar' });
-            
             if (this.config.logoUrl) {
                 const avatarImg = this.createElement('img', { src: this.config.logoUrl, alt: 'Logo' });
                 avatarDiv.appendChild(avatarImg);
             }
-
             const titleDiv = this.createElement('div', { className: 'chat-widget-header-title' });
             const companyName = this.createElement('h3', { textContent: this.config.companyName });
             const status = this.createElement('span', { textContent: 'Online' });
             titleDiv.appendChild(companyName);
             titleDiv.appendChild(status);
-
-            const closeBtn = this.createElement('button', { 
-                className: 'chat-widget-close-btn', 
-                innerHTML: '&times;',
-                ariaLabel: 'Close Chat'
-            });
-
+            const closeBtn = this.createElement('button', { className: 'chat-widget-close-btn', innerHTML: '&times;', ariaLabel: 'Close Chat' });
             header.appendChild(avatarDiv);
             header.appendChild(titleDiv);
             header.appendChild(closeBtn);
@@ -90,18 +81,19 @@
 
         createMessagesContainer() {
             const messagesContainer = this.createElement('div', { className: 'chat-widget-messages' });
-            const welcomeMsgEl = this.createMessageElement('assistant', this.config.welcomeMessage);
-            messagesContainer.appendChild(welcomeMsgEl);
+            // Populate with messages from saved state instead of just the welcome message
+            this.state.history.forEach(msg => {
+                const msgEl = this.createMessageElement(msg.sender, msg.text);
+                messagesContainer.appendChild(msgEl);
+            });
             return messagesContainer;
         }
         
         createInputArea() {
+            // ... (code is identical to previous version, omitted for brevity)
             const inputArea = this.createElement('div', { className: 'chat-widget-input-area' });
             const input = this.createElement('input', { type: 'text', placeholder: 'Type a message...' });
-            const sendButton = this.createElement('button', { 
-                ariaLabel: 'Send Message',
-                innerHTML: `<svg class="chat-widget-send-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`
-            });
+            const sendButton = this.createElement('button', { ariaLabel: 'Send Message', innerHTML: `<svg class="chat-widget-send-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>` });
             inputArea.appendChild(input);
             inputArea.appendChild(sendButton);
             return inputArea;
@@ -131,45 +123,34 @@
             const text = input.value;
             if (!text.trim() || this.isThinking) return;
 
-            this.addMessageToUI('user', text);
+            this.addMessage('user', text);
             input.value = '';
             
             this.sendToWebhook(text);
         }
         
         async sendToWebhook(text) {
+            // ... (code is identical to previous version, omitted for brevity)
             if (!this.config.apiUrl) {
                 console.error("Chat Widget: apiUrl is not configured.");
-                this.addMessageToUI('assistant', "Error: Chat service is not configured correctly.");
+                this.addMessage('assistant', "Error: Chat service is not configured correctly.");
                 return;
             }
-
             this.isThinking = true;
             this.showTypingIndicator();
-
             try {
                 const response = await fetch(this.config.apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        message: text,
-                        user: {
-                            sessionId: this.sessionId
-                        }
-                    })
+                    body: JSON.stringify({ message: text, user: { sessionId: this.state.sessionId } })
                 });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
                 const data = await response.json();
                 const reply = this.extractReply(data);
-                this.addMessageToUI('assistant', reply);
-
+                this.addMessage('assistant', reply);
             } catch (error) {
                 console.error("Error calling API:", error);
-                this.addMessageToUI('assistant', "Sorry, something went wrong. Please try again.");
+                this.addMessage('assistant', "Sorry, something went wrong. Please try again.");
             } finally {
                 this.isThinking = false;
                 this.hideTypingIndicator();
@@ -177,50 +158,41 @@
         }
 
         extractReply(data) {
-            // More robustly check for the reply in various n8n response structures
-            if (Array.isArray(data) && data[0]) {
-                const item = data[0];
-                return item.content || item.message || item.text || "Sorry, I couldn't understand the response.";
-            }
-            if (typeof data === 'object' && data !== null) {
-                return data.content || data.message || data.text || "Sorry, I couldn't understand the response.";
-            }
-            if (typeof data === 'string') {
-                return data;
-            }
+            // ... (code is identical to previous version, omitted for brevity)
+            if (Array.isArray(data) && data[0]) { const item = data[0]; return item.content || item.message || item.text || "Sorry, I couldn't understand the response."; }
+            if (typeof data === 'object' && data !== null) { return data.content || data.message || data.text || "Sorry, I couldn't understand the response."; }
+            if (typeof data === 'string') { return data; }
             return "Sorry, I received an unhandled response format.";
         }
         
-        getSessionId() {
-            let sessionId = sessionStorage.getItem('chat_widget_session_id');
-            if (!sessionId) {
-                sessionId = this.generateUUID();
-                sessionStorage.setItem('chat_widget_session_id', sessionId);
-            }
-            return sessionId;
-        }
-
         toggle() {
-            this.isOpen ? this.close() : this.open();
+            this.state.isOpen ? this.close() : this.open();
         }
 
         open() {
             this.elements.panel.classList.add('open');
             this.elements.button.classList.add('open');
-            this.isOpen = true;
+            this.state.isOpen = true;
+            this.saveState();
         }
 
         close() {
             this.elements.panel.classList.remove('open');
             this.elements.button.classList.remove('open');
-            this.isOpen = false;
+            this.state.isOpen = false;
+            this.saveState();
         }
-
-        addMessageToUI(sender, text) {
+        
+        addMessage(sender, text) {
+            // Add to UI
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
             const msgEl = this.createMessageElement(sender, text);
             messagesContainer.appendChild(msgEl);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Add to state and save
+            this.state.history.push({ sender, text });
+            this.saveState();
         }
 
         createMessageElement(sender, text) {
@@ -231,33 +203,56 @@
         }
         
         generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
+            // ... (code is identical to previous version, omitted for brevity)
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); });
         }
 
         showTypingIndicator() {
+            // ... (code is identical to previous version, omitted for brevity)
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-            const typingIndicator = this.createElement('div', { 
-                className: 'chat-widget-message assistant typing-indicator',
-                innerHTML: '<span></span><span></span><span></span>'
-            });
+            const typingIndicator = this.createElement('div', { className: 'chat-widget-message assistant typing-indicator', innerHTML: '<span></span><span></span><span></span>' });
             messagesContainer.appendChild(typingIndicator);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
         hideTypingIndicator() {
+             // ... (code is identical to previous version, omitted for brevity)
              const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
-             if (typingIndicator) {
-                 typingIndicator.remove();
-             }
+             if (typingIndicator) { typingIndicator.remove(); }
         }
         
         applyTheme() {
             document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
         }
         
+        // --- NEW AND MODIFIED METHODS FOR STATE PERSISTENCE ---
+        
+        saveState() {
+            sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
+        }
+
+        loadState() {
+            const savedState = sessionStorage.getItem(SESSION_STATE_KEY);
+            if (savedState) {
+                return JSON.parse(savedState);
+            }
+            // Return a default state if nothing is saved
+            return {
+                sessionId: this.generateUUID(),
+                isOpen: false,
+                history: [{ sender: 'assistant', text: this.config.welcomeMessage }]
+            };
+        }
+        
+        restoreUIState() {
+            if (this.state.isOpen) {
+                this.elements.panel.classList.add('open');
+                this.elements.button.classList.add('open');
+            }
+            const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
         destroy() {
             if (this.elements.button) this.elements.button.remove();
             if (this.elements.panel) this.elements.panel.remove();
@@ -276,4 +271,3 @@
     };
 
 })(window);
-
