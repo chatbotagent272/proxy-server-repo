@@ -109,6 +109,7 @@
 
 .chat-widget-input-area {
     display: flex;
+    align-items: center; /* Vertically align items in the input area */
     padding: 1rem;
     border-top: 1px solid #e2e8f0;
 }
@@ -125,7 +126,14 @@
     background-color: var(--chat-widget-primary-color);
     color: white;
     border: none;
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
+    border-radius: 50%; /* Make the button a circle */
     cursor: pointer;
+    width: 44px; /* Set a fixed width */
+    height: 44px; /* Set a fixed height */
+    flex-shrink: 0; /* Prevent the button from shrinking */
+
+    /* Add flex properties to center the icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
