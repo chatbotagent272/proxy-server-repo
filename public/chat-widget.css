@@ -96,7 +96,7 @@
 
 .chat-widget-message.assistant {
     background-color: #f1f5f9;
-    color: #1e293b;
+    color: #1e2_93b;
     align-self: flex-start;
 }
 
@@ -137,3 +137,12 @@
     align-items: center;
     justify-content: center;
 }
+
+/* Add this new rule to specifically style the SVG icon */
+.chat-widget-input-area button svg {
+    width: 24px; /* Adjust size as needed */
+    height: 24px; /* Adjust size as needed */
+    margin: 0;
+    padding: 0;
+}
+
