@@ -96,6 +96,7 @@
     flex-grow: 1;
     padding: 1rem;
     overflow-y: auto;
+    min-height: 0; /* Prevents the container from stretching before scrolling */
 }
 
 .chat-widget-message {
@@ -156,3 +157,4 @@
     height: 24px;
     color: white;
 }
+
