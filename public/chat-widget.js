@@ -191,39 +191,51 @@
             }
         }
 
-        // --- MODIFIED: This function now handles both text and carousels ---
+        // --- MODIFIED: This function now handles both text and carousels from Markdown ---
         addMessageToUI(sender, text, container) {
-            const productRegex = /PRODUCTS_JSON:\s*(\[.*\])/;
-            const match = text.match(productRegex);
+            if (sender === 'assistant') {
+                const products = this.parseProductsFromMarkdown(text);
+                
+                if (products.length > 0) {
+                    // Extract text that is NOT part of the product list
+                    const mainText = text.replace(/(\d+\.\s*\*\*[\s\S]*?\(https?:\/\/[^\)]+\))/g, '').trim();
 
-            if (sender === 'assistant' && match) {
-                const mainText = text.replace(productRegex, '').trim();
-                const productsJson = match[1];
-
-                // Add the main text message if it exists
-                if (mainText) {
-                    const textEl = this.createMessageElement(sender, mainText);
-                    container.appendChild(textEl);
-                }
-
-                // Parse and create the carousel
-                try {
-                    const products = JSON.parse(productsJson);
-                    if (products.length > 0) {
-                        const carouselEl = this.createCarouselElement(products);
-                        container.appendChild(carouselEl);
+                    if (mainText) {
+                        const textEl = this.createMessageElement(sender, mainText);
+                        container.appendChild(textEl);
                     }
-                } catch (e) {
-                    console.error("Failed to parse products JSON:", e);
-                    // If parsing fails, display the original text as a fallback
-                    const fallbackEl = this.createMessageElement(sender, text);
-                    container.appendChild(fallbackEl);
+
+                    const carouselEl = this.createCarouselElement(products);
+                    container.appendChild(carouselEl);
+                } else {
+                    // No products found, display as plain text
+                    const msgEl = this.createMessageElement(sender, text);
+                    container.appendChild(msgEl);
                 }
             } else {
-                // For user messages or simple assistant messages
+                // For user messages
                 const msgEl = this.createMessageElement(sender, text);
                 container.appendChild(msgEl);
             }
+        }
+        
+        // --- NEW: This function parses product data from a Markdown string ---
+        parseProductsFromMarkdown(text) {
+            const products = [];
+            // Regex to find all product blocks
+            const productBlockRegex = /\d+\.\s*\*\*(.*?)\*\*[\s\S]*?Kaina:\s*([\d,\.]+)\s*€[\s\S]*?Išsamiau:\s*\[.*?\]\((https?:\/\/[^\)]+)\)[\s\S]*?Paveikslėlis:\s*!\[.*?\]\((https?:\/\/[^\)]+)\)/g;
+
+            let match;
+            while ((match = productBlockRegex.exec(text)) !== null) {
+                products.push({
+                    title: match[1].trim(),
+                    price: match[2].trim().replace(',', '.'), // Normalize price
+                    url: match[3].trim(),
+                    image_url: match[4].trim(),
+                    currency: '€'
+                });
+            }
+            return products;
         }
 
         createMessageElement(sender, text) {
@@ -233,7 +245,6 @@
             return msgDiv;
         }
         
-        // --- NEW: This function builds the product carousel ---
         createCarouselElement(products) {
             const container = this.createElement('div', { className: 'product-carousel-container' });
             const carousel = this.createElement('div', { className: 'product-carousel' });
