@@ -198,7 +198,7 @@
                 
                 if (products.length > 0) {
                     // Extract text that is NOT part of the product list
-                    const mainText = text.replace(/(\d+\.\s*\*\*[\s\S]*?\(https?:\/\/[^\)]+\))/g, '').trim();
+                    const mainText = text.replace(/- Paveikslėlis:\s*!\[.*?\]\((https?:\/\/[^\)]+)\)/g, '').trim();
 
                     if (mainText) {
                         const textEl = this.createMessageElement(sender, mainText);
@@ -222,17 +222,17 @@
         // --- NEW: This function parses product data from a Markdown string ---
         parseProductsFromMarkdown(text) {
             const products = [];
-            // Regex to find all product blocks
-            const productBlockRegex = /\d+\.\s*\*\*(.*?)\*\*[\s\S]*?Kaina:\s*([\d,\.]+)\s*€[\s\S]*?Išsamiau:\s*\[.*?\]\((https?:\/\/[^\)]+)\)[\s\S]*?Paveikslėlis:\s*!\[.*?\]\((https?:\/\/[^\)]+)\)/g;
+            // Regex to find all product image lines
+            const productBlockRegex = /- Paveikslėlis:\s*!\[(.*?)\]\((https?:\/\/[^\)]+)\)/g;
 
             let match;
             while ((match = productBlockRegex.exec(text)) !== null) {
                 products.push({
-                    title: match[1].trim(),
-                    price: match[2].trim().replace(',', '.'), // Normalize price
-                    url: match[3].trim(),
-                    image_url: match[4].trim(),
-                    currency: '€'
+                    title: match[1].trim() || 'Produktas', // Use alt text as title, or a default
+                    price: '', // No price info in new format
+                    url: match[2].trim(), // No product URL, link to image instead
+                    image_url: match[2].trim(),
+                    currency: ''
                 });
             }
             return products;
@@ -259,11 +259,16 @@
                 
                 const img = this.createElement('img', { src: product.image_url, alt: product.title });
                 const title = this.createElement('h4', { textContent: product.title });
-                const price = this.createElement('p', { textContent: `${product.price}${product.currency}` });
+                
+                // Only add price if it exists
+                if (product.price) {
+                    const price = this.createElement('p', { textContent: `${product.price}${product.currency}` });
+                    cardLink.appendChild(price);
+                }
+
 
                 cardLink.appendChild(img);
                 cardLink.appendChild(title);
-                cardLink.appendChild(price);
                 carousel.appendChild(cardLink);
             });
 
