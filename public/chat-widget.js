@@ -15,7 +15,8 @@
             }, config);
             
             this.elements = {};
-            this.state = this.loadState();
+            // Pass config to loadState to ensure welcome message is available
+            this.state = this.loadState(this.config); 
             this.isThinking = false;
         }
 
@@ -183,9 +184,11 @@
             this.addMessageToUI(sender, text, messagesContainer);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
-            // Add to state and save
-            this.state.history.push({ sender, text });
-            this.saveState();
+            // Add to state and save if it's not a temporary indicator
+            if (sender !== 'indicator') {
+                this.state.history.push({ sender, text });
+                this.saveState();
+            }
         }
 
         // --- MODIFIED: This function now handles both text and carousels ---
@@ -309,7 +312,7 @@
             sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
         }
 
-        loadState() {
+        loadState(config) {
             const savedState = sessionStorage.getItem(SESSION_STATE_KEY);
             if (savedState) {
                 return JSON.parse(savedState);
@@ -317,7 +320,7 @@
             return {
                 sessionId: this.generateUUID(),
                 isOpen: false,
-                history: [{ sender: 'assistant', text: this.config.welcomeMessage }]
+                history: [{ sender: 'assistant', text: config.welcomeMessage }]
             };
         }
         
