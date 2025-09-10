@@ -15,7 +15,7 @@
             }, config);
             
             this.elements = {};
-            this.state = this.loadState(); // Load history and open state
+            this.state = this.loadState();
             this.isThinking = false;
         }
 
@@ -29,15 +29,15 @@
             
             const containerEl = document.querySelector(this.config.container);
             if (containerEl) {
-                 containerEl.appendChild(this.elements.button);
-                 containerEl.appendChild(this.elements.panel);
+                containerEl.appendChild(this.elements.button);
+                containerEl.appendChild(this.elements.panel);
             } else {
                 console.error(`Chat Widget container "${this.config.container}" not found.`);
                 return this;
             }
             
             this.applyTheme();
-            this.restoreUIState(); // Restore UI based on loaded state
+            this.restoreUIState();
             return this;
         }
 
@@ -60,7 +60,6 @@
         }
         
         createHeader() {
-            // ... (code is identical to previous version, omitted for brevity)
             const header = this.createElement('div', { className: 'chat-widget-header' });
             const avatarDiv = this.createElement('div', { className: 'chat-widget-header-avatar' });
             if (this.config.logoUrl) {
@@ -81,16 +80,13 @@
 
         createMessagesContainer() {
             const messagesContainer = this.createElement('div', { className: 'chat-widget-messages' });
-            // Populate with messages from saved state instead of just the welcome message
             this.state.history.forEach(msg => {
-                const msgEl = this.createMessageElement(msg.sender, msg.text);
-                messagesContainer.appendChild(msgEl);
+                this.addMessageToUI(msg.sender, msg.text, messagesContainer);
             });
             return messagesContainer;
         }
         
         createInputArea() {
-            // ... (code is identical to previous version, omitted for brevity)
             const inputArea = this.createElement('div', { className: 'chat-widget-input-area' });
             const input = this.createElement('input', { type: 'text', placeholder: 'Type a message...' });
             const sendButton = this.createElement('button', { ariaLabel: 'Send Message', innerHTML: `<svg class="chat-widget-send-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>` });
@@ -130,7 +126,6 @@
         }
         
         async sendToWebhook(text) {
-            // ... (code is identical to previous version, omitted for brevity)
             if (!this.config.apiUrl) {
                 console.error("Chat Widget: apiUrl is not configured.");
                 this.addMessage('assistant', "Error: Chat service is not configured correctly.");
@@ -158,7 +153,6 @@
         }
 
         extractReply(data) {
-            // ... (code is identical to previous version, omitted for brevity)
             if (Array.isArray(data) && data[0]) { const item = data[0]; return item.content || item.message || item.text || "Sorry, I couldn't understand the response."; }
             if (typeof data === 'object' && data !== null) { return data.content || data.message || data.text || "Sorry, I couldn't understand the response."; }
             if (typeof data === 'string') { return data; }
@@ -186,13 +180,47 @@
         addMessage(sender, text) {
             // Add to UI
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-            const msgEl = this.createMessageElement(sender, text);
-            messagesContainer.appendChild(msgEl);
+            this.addMessageToUI(sender, text, messagesContainer);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
             
             // Add to state and save
             this.state.history.push({ sender, text });
             this.saveState();
+        }
+
+        // --- MODIFIED: This function now handles both text and carousels ---
+        addMessageToUI(sender, text, container) {
+            const productRegex = /PRODUCTS_JSON:\s*(\[.*\])/;
+            const match = text.match(productRegex);
+
+            if (sender === 'assistant' && match) {
+                const mainText = text.replace(productRegex, '').trim();
+                const productsJson = match[1];
+
+                // Add the main text message if it exists
+                if (mainText) {
+                    const textEl = this.createMessageElement(sender, mainText);
+                    container.appendChild(textEl);
+                }
+
+                // Parse and create the carousel
+                try {
+                    const products = JSON.parse(productsJson);
+                    if (products.length > 0) {
+                        const carouselEl = this.createCarouselElement(products);
+                        container.appendChild(carouselEl);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse products JSON:", e);
+                    // If parsing fails, display the original text as a fallback
+                    const fallbackEl = this.createMessageElement(sender, text);
+                    container.appendChild(fallbackEl);
+                }
+            } else {
+                // For user messages or simple assistant messages
+                const msgEl = this.createMessageElement(sender, text);
+                container.appendChild(msgEl);
+            }
         }
 
         createMessageElement(sender, text) {
@@ -202,13 +230,66 @@
             return msgDiv;
         }
         
+        // --- NEW: This function builds the product carousel ---
+        createCarouselElement(products) {
+            const container = this.createElement('div', { className: 'product-carousel-container' });
+            const carousel = this.createElement('div', { className: 'product-carousel' });
+            
+            products.forEach(product => {
+                const cardLink = this.createElement('a', { 
+                    href: product.url,
+                    className: 'product-card',
+                    target: '_blank',
+                    rel: 'noopener noreferrer'
+                });
+                
+                const img = this.createElement('img', { src: product.image_url, alt: product.title });
+                const title = this.createElement('h4', { textContent: product.title });
+                const price = this.createElement('p', { textContent: `${product.price}${product.currency}` });
+
+                cardLink.appendChild(img);
+                cardLink.appendChild(title);
+                cardLink.appendChild(price);
+                carousel.appendChild(cardLink);
+            });
+
+            container.appendChild(carousel);
+
+            if (products.length > 1) { // Only add arrows if there's more than one product
+                const prevButton = this.createElement('button', { className: 'carousel-arrow prev', innerHTML: '&#10094;' });
+                const nextButton = this.createElement('button', { className: 'carousel-arrow next', innerHTML: '&#10095;' });
+                container.appendChild(prevButton);
+                container.appendChild(nextButton);
+
+                const scrollAmount = 160; // card width + gap
+
+                prevButton.addEventListener('click', () => {
+                    const newScrollLeft = carousel.scrollLeft - scrollAmount;
+                    if (newScrollLeft < 0) {
+                        carousel.scrollLeft = carousel.scrollWidth - carousel.clientWidth; // Loop to end
+                    } else {
+                        carousel.scrollLeft = newScrollLeft;
+                    }
+                });
+
+                nextButton.addEventListener('click', () => {
+                    const newScrollLeft = carousel.scrollLeft + scrollAmount;
+                    if (newScrollLeft >= carousel.scrollWidth - carousel.clientWidth) {
+                        carousel.scrollLeft = 0; // Loop to start
+                    } else {
+                        carousel.scrollLeft = newScrollLeft;
+                    }
+                });
+            }
+
+            return container;
+        }
+
         generateUUID() {
-            // ... (code is identical to previous version, omitted for brevity)
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); });
         }
 
         showTypingIndicator() {
-            // ... (code is identical to previous version, omitted for brevity)
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
             const typingIndicator = this.createElement('div', { className: 'chat-widget-message assistant typing-indicator', innerHTML: '<span></span><span></span><span></span>' });
             messagesContainer.appendChild(typingIndicator);
@@ -216,16 +297,13 @@
         }
         
         hideTypingIndicator() {
-             // ... (code is identical to previous version, omitted for brevity)
-             const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
-             if (typingIndicator) { typingIndicator.remove(); }
+            const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
+            if (typingIndicator) { typingIndicator.remove(); }
         }
         
         applyTheme() {
             document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
         }
-        
-        // --- NEW AND MODIFIED METHODS FOR STATE PERSISTENCE ---
         
         saveState() {
             sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
@@ -236,7 +314,6 @@
             if (savedState) {
                 return JSON.parse(savedState);
             }
-            // Return a default state if nothing is saved
             return {
                 sessionId: this.generateUUID(),
                 isOpen: false,
@@ -262,8 +339,8 @@
     window.ChatWidget = {
         init: (config) => {
             if (window.chatWidgetInstance) {
-                 window.chatWidgetInstance.destroy();
-                 window.chatWidgetInstance = null;
+                window.chatWidgetInstance.destroy();
+                window.chatWidgetInstance = null;
             }
             window.chatWidgetInstance = new ChatWidget(config);
             return window.chatWidgetInstance.init();
@@ -271,3 +348,4 @@
     };
 
 })(window);
+
