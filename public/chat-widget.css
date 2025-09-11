@@ -327,9 +327,9 @@
   padding: 0 45px;
   width: calc(100% + 30px);
   flex-shrink: 0;
-  perspective: 1000px;
+  perspective: 1200px;
   overflow: hidden;
-  height: 300px !important; /* Critical: Fixed height for visibility */
+  height: 320px !important; /* Critical: Fixed height for visibility */
   display: flex !important;
   align-items: center;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -360,14 +360,14 @@
   text-decoration: none;
   color: inherit;
   box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  transition: all 0.4s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex !important;
   flex-direction: column;
   align-items: center;
   text-align: center;
   border: 2px solid transparent;
   position: relative;
-  transform-origin: center;
+  transform-origin: center center;
   min-height: 260px;
   margin-right: 20px;
   backface-visibility: hidden;
@@ -375,12 +375,13 @@
   opacity: 1 !important;
   visibility: visible !important;
   z-index: 1;
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
 }
 
 .product-card:hover {
-  box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.3) !important;
   border-color: var(--chat-widget-primary-color);
-  transform: translateY(-5px) !important;
   z-index: 15 !important;
 }
 
