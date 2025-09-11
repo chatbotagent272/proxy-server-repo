@@ -291,6 +291,9 @@
 
         const container = this.createElement('div', { className: 'product-carousel-container' });
         const carousel = this.createElement('div', { className: 'product-carousel' });
+        
+        const productCount = products.length;
+        if (productCount === 0) return container;
 
         // Triple the products for seamless looping
         const allProducts = [...products, ...products, ...products];
@@ -320,7 +323,6 @@
             cardLink.appendChild(img);
             cardLink.appendChild(title);
 
-            // **UPDATED PRICE LOGIC**
             const priceContainer = this.createElement('div', { className: 'product-price-container' });
             const isDiscounted = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.currentPrice);
 
@@ -340,15 +342,11 @@
                 priceContainer.appendChild(originalPriceEl);
             }
             cardLink.appendChild(priceContainer);
-            // **END OF UPDATED PRICE LOGIC**
 
             carousel.appendChild(cardLink);
         });
 
         container.appendChild(carousel);
-        
-        const productCount = products.length;
-        if (productCount === 0) return container;
 
         carousel.dataset.currentIndex = productCount; // Start at the beginning of the second set
         carousel.dataset.productCount = productCount;
@@ -371,24 +369,32 @@
             nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
         }
 
-        requestAnimationFrame(() => {
+        // Use a timeout to ensure the container has been rendered and has a width
+        setTimeout(() => {
             this.setupCarousel(carousel);
-        });
+        }, 0);
 
         return container;
     }
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const totalCardWidth = cardWidth; // No gap, handled by transform
+        const totalCardWidth = cardWidth; 
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
         const centerOffset = (containerWidth / 2) - (cardWidth / 2);
         const initialX = centerOffset - (initialIndex * totalCardWidth);
         
+        // Apply initial position without transition
+        carousel.style.transition = 'none';
         carousel.style.transform = `translateX(${initialX}px)`;
         this.updateCoverflowEffect(carousel, initialIndex);
+
+        // Re-enable transitions after a short delay
+        setTimeout(() => {
+            carousel.style.transition = 'transform 0.4s ease';
+        }, 50);
     }
 
     navigateCarousel(carousel, direction) {
@@ -402,65 +408,75 @@
 
         currentIndex += direction;
         carousel.dataset.currentIndex = currentIndex;
-
-        carousel.style.transition = 'transform 0.4s ease';
         
+        carousel.style.transition = 'transform 0.4s ease';
         const containerWidth = carousel.parentElement.offsetWidth;
         const centerOffset = (containerWidth / 2) - (cardWidth / 2);
         const newX = centerOffset - (currentIndex * totalCardWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
         this.updateCoverflowEffect(carousel, currentIndex);
-
-        carousel.addEventListener('transitionend', () => {
+        
+        const handleTransitionEnd = () => {
+            carousel.removeEventListener('transitionend', handleTransitionEnd);
             let needsReset = false;
-            if (currentIndex >= productCount * 2) {
-                currentIndex -= productCount;
-                needsReset = true;
-            } else if (currentIndex < productCount) {
+            if (currentIndex <= productCount - 1) {
                 currentIndex += productCount;
+                needsReset = true;
+            } else if (currentIndex >= productCount * 2) {
+                currentIndex -= productCount;
                 needsReset = true;
             }
 
             if (needsReset) {
                 carousel.style.transition = 'none';
+                carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * totalCardWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
-                carousel.dataset.currentIndex = currentIndex;
-                // Force a reflow before re-enabling transition
-                void carousel.offsetWidth; 
                 this.updateCoverflowEffect(carousel, currentIndex);
+                
+                // Force a browser repaint before re-enabling transitions
+                void carousel.offsetWidth;
+                carousel.style.transition = 'transform 0.4s ease';
             }
-
             carousel.dataset.isTransitioning = 'false';
-        }, { once: true });
+        };
+
+        carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
     updateCoverflowEffect(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
+        const cardWidth = 140; 
+
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
             const absDistance = Math.abs(distance);
             const side = Math.sign(distance);
 
-            const scale = 1 - (absDistance * 0.2);
-            const rotateY = -side * 45 * Math.min(absDistance, 1.5);
-            const translateX = side * (50 - (absDistance * 10)); // Pulls side cards closer
-            const translateZ = -absDistance * 50;
-            const opacity = Math.max(0, 1 - (absDistance * 0.4));
-            const zIndex = 20 - absDistance;
+            let translateX, translateZ, rotateY, scale, opacity, zIndex;
 
             if (distance === 0) {
-                 // Center card
-                card.style.transform = 'scale(1.05) translateZ(30px)';
-                card.style.opacity = '1';
-                card.style.zIndex = '20';
+                // Center card
+                translateX = 0;
+                translateZ = 40; // Bring it forward
+                rotateY = 0;
+                scale = 1.05;    // Make it slightly larger
+                opacity = 1;
+                zIndex = 20;
             } else {
-                 // Side cards
-                card.style.transform = `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
-                card.style.opacity = opacity;
-                card.style.zIndex = zIndex;
+                // Side cards
+                translateX = side * (cardWidth * 0.6); // Overlap by translating 60% of width
+                translateZ = -absDistance * 70;      // Push back further
+                rotateY = side * -60;                // More aggressive angle
+                scale = Math.max(0, 1 - (absDistance * 0.15));
+                opacity = Math.max(0, 1 - (absDistance * 0.25));
+                zIndex = 20 - absDistance;
             }
+
+            card.style.transform = `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
+            card.style.opacity = opacity;
+            card.style.zIndex = zIndex;
         });
     }
 
@@ -538,3 +554,4 @@
     };
 
 })(window);
+
