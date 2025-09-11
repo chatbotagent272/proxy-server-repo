@@ -432,10 +432,11 @@
                 carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * totalCardWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
-                this.updateCarouselStyles(carousel, currentIndex);
                 
-                void carousel.offsetWidth;
-                carousel.style.transition = 'transform 0.4s ease';
+                // Use a minimal timeout to allow the jump to happen before re-enabling transitions
+                setTimeout(() => {
+                    carousel.style.transition = 'transform 0.4s ease';
+                }, 20);
             }
             carousel.dataset.isTransitioning = 'false';
         };
@@ -443,13 +444,11 @@
         carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    // **REPLACED updateCoverflowEffect with a simplified version**
     updateCarouselStyles(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
             
-            // Reset any complex transforms from previous attempts
             card.style.transform = '';
 
             if (distance === 0) {
@@ -457,8 +456,8 @@
                 card.style.opacity = '1';
                 card.style.transform = 'scale(1.05)';
             } else {
-                // Side cards: normal size and slightly faded
-                card.style.opacity = '0.7';
+                // Side cards: normal size and fully visible
+                card.style.opacity = '1';
                 card.style.transform = 'scale(1)';
             }
         });
