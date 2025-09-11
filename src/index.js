@@ -11,7 +11,7 @@ app.use(cors());
 // The API endpoint the chatbot widget will call
 app.post('/api/chat', async (req, res) => {
   // This reads the secret URL you stored in Vercel's environment variables
-  const n8nWebhookUrl = process.env.N8N_WEBHOOK_MRWOO;
+  const n8nWebhookUrl = process.env.TEST;
 
   if (!n8nWebhookUrl) {
     console.error('Webhook URL is not configured.');
