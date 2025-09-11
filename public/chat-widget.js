@@ -374,8 +374,8 @@
     }
 
     setupCarousel(carousel) {
-      const cardWidth = 180;
-      const gap = 20;
+      const cardWidth = 140;
+      const gap = 5;
       const totalCardWidth = cardWidth + gap;
       const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
 
@@ -395,8 +395,8 @@
       carousel.dataset.isTransitioning = 'true';
       let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
       const productCount = parseInt(carousel.dataset.productCount, 10);
-      const cardWidth = 180;
-      const gap = 20;
+      const cardWidth = 140;
+      const gap = 5;
       const totalCardWidth = cardWidth + gap;
 
       currentIndex += direction;
@@ -435,29 +435,30 @@
     }
 
     updateCoverflowEffect(carousel, centerIndex) {
-      const cards = carousel.querySelectorAll('.product-card');
-      cards.forEach((card, index) => {
-        const distance = index - centerIndex;
-        const absDistance = Math.abs(distance);
-
-        if (distance === 0) {
-          card.style.transform = 'translateX(0px) translateZ(50px) rotateY(0deg) scale(1.1)';
+  const cards = carousel.querySelectorAll('.product-card');
+  cards.forEach((card, index) => {
+    const distance = index - centerIndex;
+    const absDistance = Math.abs(distance);
+    
+    if (distance === 0) {
+      // Center card - fully visible and prominent
+      card.style.transform = 'translateX(0px) translateZ(30px) rotateY(0deg) scale(1.05)';
       card.style.opacity = '1';
       card.style.zIndex = '20';
     } else if (absDistance === 1) {
-      // Immediate side cards - semi-visible with rotation
+      // Immediate side cards - 35-40% visible, behind center card
       const side = Math.sign(distance);
-      card.style.transform = `translateX(${side * 60}px) translateZ(-50px) rotateY(${side * 40}deg) scale(0.85)`;
-      card.style.opacity = '0.8';
-      card.style.zIndex = '15';
+      card.style.transform = `translateX(${side * 25}px) translateZ(-20px) rotateY(${side * 45}deg) scale(0.8)`;
+      card.style.opacity = '0.4';
+      card.style.zIndex = '10';
     } else {
-      // Distant cards - more rotated and faded
+      // Distant cards - barely visible, further back
       const side = Math.sign(distance);
-      card.style.transform = `translateX(${side * 80 * absDistance}px) translateZ(-${100 * absDistance}px) rotateY(${side * 50}deg) scale(${Math.max(0.6, 0.9 - (absDistance * 0.2))})`;
-      card.style.opacity = `${Math.max(0.3, 0.8 - (absDistance * 0.3))}`;
-      card.style.zIndex = `${15 - absDistance}`;
+      card.style.transform = `translateX(${side * 40 * absDistance}px) translateZ(-${40 * absDistance}px) rotateY(${side * 55}deg) scale(${Math.max(0.6, 0.8 - (absDistance * 0.1))})`;
+      card.style.opacity = `${Math.max(0.2, 0.4 - (absDistance * 0.1))}`;
+      card.style.zIndex = `${10 - absDistance}`;
     }
-
+    
     card.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease';
   });
 }
