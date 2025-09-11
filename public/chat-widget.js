@@ -382,7 +382,8 @@
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
-        const centerOffset = (containerWidth / 2) - (cardWidth / 2);
+        // ADJUSTED a single line here to correct the centering
+        const centerOffset = (containerWidth / 2);
         const initialX = centerOffset - (initialIndex * stepWidth);
         
         carousel.style.transition = 'none';
@@ -407,7 +408,8 @@
         
         carousel.style.transition = 'transform 0.4s ease';
         const containerWidth = carousel.parentElement.offsetWidth;
-        const centerOffset = (containerWidth / 2) - (cardWidth / 2);
+        // ADJUSTED a single line here to correct the centering
+        const centerOffset = (containerWidth / 2);
         const newX = centerOffset - (currentIndex * stepWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
@@ -557,4 +559,5 @@
     };
 
 })(window);
+
 
