@@ -249,7 +249,8 @@
                     href: product.url,
                     className: 'product-card',
                     target: '_blank',
-                    rel: 'noopener noreferrer'
+                    rel: 'noopener noreferrer',
+                    'data-index': index % products.length // Store original index
                 });
                 
                 const img = this.createElement('img', { 
@@ -280,16 +281,8 @@
             
             // Initialize carousel position to show center item
             setTimeout(() => {
-                const cardWidth = 200; // card width + gap
-                const centerIndex = products.length; // Start at the first duplicate set
-                carousel.scrollLeft = centerIndex * cardWidth;
-                this.updateCarouselOpacity(carousel);
+                this.setupCoverflow(carousel, products.length);
             }, 100);
-            
-            // Add scroll event listener for opacity updates
-            carousel.addEventListener('scroll', () => {
-                this.updateCarouselOpacity(carousel);
-            });
             
             // Add navigation arrows
             if (products.length > 1) {
@@ -307,91 +300,123 @@
                 container.appendChild(prevButton);
                 container.appendChild(nextButton);
                 
-                const cardWidth = 200;
                 const originalLength = products.length;
                 
                 prevButton.addEventListener('click', () => {
-                    const currentScroll = carousel.scrollLeft;
-                    
-                    // Disable smooth scrolling temporarily for instant jump
-                    carousel.style.scrollBehavior = 'auto';
-                    
-                    // Calculate the current index based on scroll position
-                    const currentIndex = Math.round(currentScroll / cardWidth);
-                    
-                    // Handle infinite scroll - jump to end if at beginning
-                    if (currentIndex <= originalLength) {
-                        carousel.scrollLeft = (originalLength * 2 - 1) * cardWidth;
-                    } else {
-                        carousel.scrollLeft = currentScroll - cardWidth;
-                    }
-                    
-                    // Re-enable smooth scrolling for future transitions
-                    setTimeout(() => {
-                        carousel.style.scrollBehavior = 'smooth';
-                    }, 10);
+                    this.navigateCarousel(carousel, -1, originalLength);
                 });
                 
                 nextButton.addEventListener('click', () => {
-                    const currentScroll = carousel.scrollLeft;
-                    
-                    // Disable smooth scrolling temporarily for instant jump
-                    carousel.style.scrollBehavior = 'auto';
-                    
-                    // Calculate the current index based on scroll position
-                    const currentIndex = Math.round(currentScroll / cardWidth);
-                    
-                    // Handle infinite scroll - jump to beginning if at end
-                    if (currentIndex >= originalLength * 2 - 1) {
-                        carousel.scrollLeft = originalLength * cardWidth;
-                    } else {
-                        carousel.scrollLeft = currentScroll + cardWidth;
-                    }
-                    
-                    // Re-enable smooth scrolling for future transitions
-                    setTimeout(() => {
-                        carousel.style.scrollBehavior = 'smooth';
-                    }, 10);
+                    this.navigateCarousel(carousel, 1, originalLength);
                 });
             }
             return container;
         }
         
-        updateCarouselOpacity(carousel) {
+        setupCoverflow(carousel, productCount) {
             const cards = carousel.querySelectorAll('.product-card');
-            const containerRect = carousel.getBoundingClientRect();
-            const containerCenter = containerRect.left + containerRect.width / 2;
+            const cardWidth = 180; // Match CSS width
+            const gap = 20; // Match CSS gap
+            const totalCardWidth = cardWidth + gap;
             
-            cards.forEach(card => {
-                const cardRect = card.getBoundingClientRect();
-                const cardCenter = cardRect.left + cardRect.width / 2;
-                const distance = Math.abs(containerCenter - cardCenter);
+            // Set carousel width to accommodate all cards
+            carousel.style.width = `${cards.length * totalCardWidth}px`;
+            
+            // Position the first product in the center
+            const containerWidth = carousel.parentElement.offsetWidth;
+            const centerOffset = (containerWidth - cardWidth) / 2;
+            carousel.style.transform = `translateX(${centerOffset}px)`;
+            
+            // Apply initial coverflow styling
+            this.updateCoverflowEffect(carousel, 0);
+        }
+        
+        navigateCarousel(carousel, direction, productCount) {
+            const cards = carousel.querySelectorAll('.product-card');
+            if (cards.length === 0) return;
+            
+            // Get current position
+            const transform = window.getComputedStyle(carousel).transform;
+            const matrix = new DOMMatrix(transform);
+            const currentX = matrix.m41; // Extract X translation
+            
+            const cardWidth = 180; // Match CSS width
+            const gap = 20; // Match CSS gap
+            const totalCardWidth = cardWidth + gap;
+            
+            // Calculate new position
+            const newX = currentX - (direction * totalCardWidth);
+            
+            // Apply new position with transition
+            carousel.style.transition = 'transform 0.3s ease';
+            carousel.style.transform = `translateX(${newX}px)`;
+            
+            // Update coverflow effect
+            const currentIndex = Math.round((currentX - (carousel.parentElement.offsetWidth - cardWidth) / 2) / -totalCardWidth);
+            this.updateCoverflowEffect(carousel, currentIndex + direction);
+            
+            // Handle infinite scroll
+            setTimeout(() => {
+                // Check if we need to reset position for infinite effect
+                const currentTransform = window.getComputedStyle(carousel).transform;
+                const currentMatrix = new DOMMatrix(currentTransform);
+                const currentPosX = currentMatrix.m41;
                 
-                // Calculate opacity and scale based on distance from center
-                const maxDistance = 200; // Adjust this value to control the effect range
-                let opacity, scale, zIndex;
+                // If we've moved too far in either direction, reset position
+                const maxOffset = productCount * totalCardWidth;
+                if (Math.abs(currentPosX) > maxOffset) {
+                    carousel.style.transition = 'none';
+                    carousel.style.transform = `translateX(${currentPosX > 0 ? currentPosX - maxOffset : currentPosX + maxOffset}px)`;
+                    
+                    // Restore transition after reset
+                    setTimeout(() => {
+                        carousel.style.transition = 'transform 0.3s ease';
+                    }, 50);
+                }
+            }, 350);
+        }
+        
+        updateCoverflowEffect(carousel, centerIndex) {
+            const cards = carousel.querySelectorAll('.product-card');
+            const containerWidth = carousel.parentElement.offsetWidth;
+            const centerOffset = (containerWidth - 180) / 2; // 180 is card width from CSS
+            
+            cards.forEach((card, index) => {
+                // Calculate distance from center
+                const distance = Math.abs(index - centerIndex);
                 
-                if (distance < 50) {
-                    // Center card - full opacity, slight scale, and highest z-index
-                    opacity = 1;
-                    scale = 1.05;
-                    zIndex = 3;
-                } else if (distance < 150) {
-                    // Side cards - reduced opacity, normal scale, medium z-index
-                    opacity = Math.max(0.6, 1 - (distance / maxDistance));
-                    scale = 1;
-                    zIndex = 2;
+                // Reset all transforms first
+                card.style.transform = '';
+                card.style.opacity = '';
+                card.style.zIndex = '';
+                
+                if (distance === 0) {
+                    // Center card
+                    card.style.transform = 'translateZ(0) scale(1)';
+                    card.style.opacity = '1';
+                    card.style.zIndex = '10';
+                } else if (distance === 1) {
+                    // Adjacent cards
+                    const side = index < centerIndex ? -1 : 1;
+                    card.style.transform = `translateX(${side * 70}px) translateZ(-100px) scale(0.85) rotateY(${side * 25}deg)`;
+                    card.style.opacity = '0.8';
+                    card.style.zIndex = '8';
+                } else if (distance === 2) {
+                    // Further cards
+                    const side = index < centerIndex ? -1 : 1;
+                    card.style.transform = `translateX(${side * 120}px) translateZ(-200px) scale(0.7) rotateY(${side * 35}deg)`;
+                    card.style.opacity = '0.5';
+                    card.style.zIndex = '6';
                 } else {
-                    // Far cards - minimal opacity, lowest z-index
-                    opacity = 0.3;
-                    scale = 0.95;
-                    zIndex = 1;
+                    // Far cards - mostly hidden
+                    const side = index < centerIndex ? -1 : 1;
+                    card.style.transform = `translateX(${side * 150}px) translateZ(-300px) scale(0.6) rotateY(${side * 40}deg)`;
+                    card.style.opacity = '0.3';
+                    card.style.zIndex = '4';
                 }
                 
-                card.style.opacity = opacity;
-                card.style.transform = `scale(${scale})`;
-                card.style.zIndex = zIndex;
-                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                // Add transition for smooth changes
+                card.style.transition = 'transform 0.3s ease, opacity 0.3s ease, z-index 0.3s ease';
             });
         }
         
