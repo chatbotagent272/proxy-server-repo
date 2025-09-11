@@ -323,18 +323,19 @@
 
 .product-carousel-container {
   position: relative;
-  margin: 15px -15px;
-  padding: 0 45px;
-  width: calc(100% + 30px);
+  margin: 10px 0;
+  padding: 0 15px;
+  width: 100%;
   flex-shrink: 0;
-  perspective: 1200px;
+  perspective: 800px;
+  perspective-origin: center center;
   overflow: hidden;
-  height: 320px !important; /* Critical: Fixed height for visibility */
+  height: 200px !important; /* Reduced height */
   display: flex !important;
   align-items: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
-  /* Ensure visibility */
+  justify-content: center;
+  /* Removed background */
+  border-radius: 8px;
   opacity: 1 !important;
   visibility: visible !important;
 }
@@ -347,31 +348,29 @@
   width: fit-content;
   height: 100%;
   align-items: center;
-  /* Ensure visibility */
   opacity: 1 !important;
   visibility: visible !important;
 }
 
 .product-card {
-  flex: 0 0 180px !important;
+  flex: 0 0 140px !important; /* Reduced card width */
   background: #fff !important;
-  border-radius: 12px;
-  padding: 15px;
+  border-radius: 8px;
+  padding: 10px;
   text-decoration: none;
   color: inherit;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex !important;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  border: 2px solid transparent;
+  border: 1px solid #e2e8f0;
   position: relative;
   transform-origin: center center;
-  min-height: 260px;
-  margin-right: 20px;
+  min-height: 180px; /* Reduced height */
+  margin-right: 5px; /* Minimal spacing */
   backface-visibility: hidden;
-  /* Critical: Ensure visibility */
   opacity: 1 !important;
   visibility: visible !important;
   z-index: 1;
@@ -380,21 +379,21 @@
 }
 
 .product-card:hover {
-  box-shadow: 0 15px 40px rgba(0,0,0,0.3) !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
   border-color: var(--chat-widget-primary-color);
-  z-index: 15 !important;
+  z-index: 25 !important;
 }
 
 .product-card img {
   width: 100%;
-  height: 120px;
+  height: 80px; /* Reduced image height */
   object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
   transition: transform 0.3s ease;
   flex-shrink: 0;
-  background: #f5f5f5; /* Fallback background */
-  display: block !important; /* Ensure images are visible */
+  background: #f5f5f5;
+  display: block !important;
 }
 
 .product-card:hover img {
@@ -402,58 +401,56 @@
 }
 
 .product-card .product-title {
-  font-size: 13px;
+  font-size: 11px; /* Smaller font */
   font-weight: 600;
-  margin: 0 0 8px 0;
-  line-height: 1.3;
+  margin: 0 0 6px 0;
+  line-height: 1.2;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2; /* Reduced lines */
   -webkit-box-orient: vertical;
   overflow: hidden;
   color: #1e293b;
   flex: 1;
   text-align: center;
-  min-height: 60px; /* Ensure consistent height */
+  min-height: 30px; /* Reduced height */
 }
 
 .product-card .product-price {
-  font-size: 16px;
+  font-size: 13px; /* Smaller font */
   font-weight: 700;
   color: var(--chat-widget-primary-color);
   margin: auto 0 0 0;
   flex-shrink: 0;
-  padding: 8px 12px;
+  padding: 4px 8px;
   background: rgba(91, 141, 239, 0.1);
-  border-radius: 20px;
+  border-radius: 12px;
 }
 
-/* Carousel Navigation Arrows */
 .carousel-arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255,255,255,0.95);
+  background: rgba(255,255,255,0.9);
   border: 1px solid #e2e8f0;
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 30px; /* Smaller arrows */
+  height: 30px;
   display: flex !important;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 14px;
   color: #374151;
-  z-index: 100; /* Critical: High z-index to stay above cards */
+  z-index: 100;
   transition: all 0.2s ease;
   backdrop-filter: blur(4px);
-  /* Ensure visibility */
   opacity: 1 !important;
   visibility: visible !important;
 }
 
 .carousel-arrow:hover {
   background: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   color: var(--chat-widget-primary-color);
   transform: translateY(-50%) scale(1.1);
 }
@@ -494,35 +491,34 @@
   }
 
   .product-carousel-container {
-    padding: 0 35px;
-    margin: 15px -15px;
-    height: 260px !important; /* Mobile height */
+    height: 160px !important;
+    margin: 8px 0;
   }
 
   .product-card {
-    flex: 0 0 160px !important;
-    padding: 12px;
-    min-height: 220px;
+    flex: 0 0 120px !important;
+    padding: 8px;
+    min-height: 140px;
   }
 
   .product-card img {
-    height: 100px;
+    height: 60px;
   }
 
   .product-card .product-title {
-    font-size: 12px;
-    min-height: 48px;
+    font-size: 10px;
+    min-height: 24px;
   }
 
   .product-card .product-price {
-    font-size: 14px;
-    padding: 6px 10px;
+    font-size: 11px;
+    padding: 3px 6px;
   }
 
   .carousel-arrow {
-    width: 35px;
-    height: 35px;
-    font-size: 16px;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
   }
 
   .chat-widget-header {
@@ -598,7 +594,7 @@
   }
 
   .carousel-arrow {
-    background: rgba(55, 65, 81, 0.95);
+    background: rgba(55, 65, 81, 0.9);
     border-color: #4b5563;
     color: #f9fafb;
   }
