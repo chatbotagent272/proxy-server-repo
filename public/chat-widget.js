@@ -1,535 +1,447 @@
 (function(window) {
 
-'use strict';
+    'use strict';
+    
+    const SESSION_STATE_KEY = 'chat_widget_session_state';
+    
+    class ChatWidget {
+    
+    constructor(config) {
+      this.config = Object.assign({
+        primaryColor: '#5B8DEF',
+        companyName: 'Support',
+        logoUrl: '',
+        welcomeMessage: 'Hello! How can we help?',
+        apiUrl: 'https://proxy-server-repo.vercel.app/api/chat',
+        container: 'body'
+      }, config);
+    
+      this.elements = {};
+      this.state = this.loadState(this.config);
+      this.isThinking = false;
+    }
+    
+    init() {
+      if (document.querySelector('.chat-widget-button')) {
+        console.warn("Chat Widget is already initialized.");
+        return this;
+      }
+    
+      this.createElements();
+      this.attachEventListeners();
+    
+      const containerEl = document.querySelector(this.config.container);
+      if (containerEl) {
+        containerEl.appendChild(this.elements.button);
+        containerEl.appendChild(this.elements.panel);
+      } else {
+        console.error(`Chat Widget container "${this.config.container}" not found.`);
+        return this;
+      }
+    
+      this.applyTheme();
+      this.restoreUIState();
+      return this;
+    }
+    
+    createElements() {
+      this.elements.button = this.createElement('button', {
+        className: 'chat-widget-button',
+        ariaLabel: 'Toggle Chat Window',
+        innerHTML: `<svg class="chat-widget-button-icon" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v3c0 .6.4 1 1 1 .2 0 .5-.1.7-.3L14.6 18H20c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+        </svg>`
+      });
+    
+      this.elements.panel = this.createElement('div', { className: 'chat-widget-panel' });
+    
+      const header = this.createHeader();
+      const messagesContainer = this.createMessagesContainer();
+      const inputArea = this.createInputArea();
+    
+      this.elements.panel.appendChild(header);
+      this.elements.panel.appendChild(messagesContainer);
+      this.elements.panel.appendChild(inputArea);
+    }
+    
+    createHeader() {
+      const header = this.createElement('div', { className: 'chat-widget-header' });
+    
+      const avatarDiv = this.createElement('div', { className: 'chat-widget-header-avatar' });
+      if (this.config.logoUrl) {
+        const avatarImg = this.createElement('img', { src: this.config.logoUrl, alt: 'Logo' });
+        avatarDiv.appendChild(avatarImg);
+      }
+    
+      const titleDiv = this.createElement('div', { className: 'chat-widget-header-title' });
+      const companyName = this.createElement('h3', { textContent: this.config.companyName });
+      const status = this.createElement('span', { textContent: 'Online' });
+      titleDiv.appendChild(companyName);
+      titleDiv.appendChild(status);
+    
+      const closeBtn = this.createElement('button', { 
+        className: 'chat-widget-close-btn', 
+        innerHTML: '×', 
+        ariaLabel: 'Close Chat' 
+      });
+    
+      header.appendChild(avatarDiv);
+      header.appendChild(titleDiv);
+      header.appendChild(closeBtn);
+    
+      return header;
+    }
+    
+    createMessagesContainer() {
+      const messagesContainer = this.createElement('div', { className: 'chat-widget-messages' });
+    
+      this.state.history.forEach(msg => {
+        this.addMessageToUI(msg.sender, msg.text, messagesContainer);
+      });
+    
+      return messagesContainer;
+    }
+    
+    createInputArea() {
+      const inputArea = this.createElement('div', { className: 'chat-widget-input-area' });
+    
+      const input = this.createElement('input', { 
+        type: 'text', 
+        placeholder: 'Type a message...' 
+      });
+    
+      const sendButton = this.createElement('button', { 
+        ariaLabel: 'Send Message', 
+        innerHTML: `<svg class="chat-widget-send-icon" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>` 
+      });
+    
+      inputArea.appendChild(input);
+      inputArea.appendChild(sendButton);
+    
+      return inputArea;
+    }
+    
+    createElement(tag, props) {
+      const el = document.createElement(tag);
+      Object.keys(props).forEach(key => el[key] = props[key]);
+      return el;
+    }
+    
+    attachEventListeners() {
+      this.elements.button.addEventListener('click', () => this.toggle());
+      this.elements.panel.querySelector('.chat-widget-close-btn').addEventListener('click', () => this.close());
+    
+      const input = this.elements.panel.querySelector('input');
+      const sendButton = this.elements.panel.querySelector('.chat-widget-input-area button');
+    
+      sendButton.addEventListener('click', () => this.handleSendMessage());
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') this.handleSendMessage();
+      });
+    }
+    
+    handleSendMessage() {
+      const input = this.elements.panel.querySelector('input');
+      const text = input.value;
+    
+      if (!text.trim() || this.isThinking) return;
+    
+      this.addMessage('user', text);
+      input.value = '';
+      this.sendToWebhook(text);
+    }
+    
+    async sendToWebhook(text) {
+      if (!this.config.apiUrl) {
+        console.error("Chat Widget: apiUrl is not configured.");
+        this.addMessage('assistant', "Error: Chat service is not configured correctly.");
+        return;
+      }
+    
+      this.isThinking = true;
+      this.showTypingIndicator();
+    
+      try {
+        console.log('Sending message to API:', text);
+    
+        const response = await fetch(this.config.apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, user: { sessionId: this.state.sessionId } })
+        });
+    
+        if (!response.ok) { 
+          throw new Error(`HTTP error! status: ${response.status}`); 
+        }
+    
+        const data = await response.json();
+        console.log('Received response from API:', data);
+    
+        const reply = this.extractReply(data);
+        this.addMessage('assistant', reply);
+    
+      } catch (error) {
+        console.error("Error calling API:", error);
+        this.addMessage('assistant', "Sorry, something went wrong. Please try again.");
+      } finally {
+        this.isThinking = false;
+        this.hideTypingIndicator();
+      }
+    }
+    
+    extractReply(data) {
+      console.log('Extracting reply from data:', data);
 
-const SESSION_STATE_KEY = 'chat_widget_session_state';
+      if (Array.isArray(data) && data.length > 0) {
+        if (data[0].content !== undefined) {
+          console.log('Found array format with content property');
+          return data; // return array directly
+        }
+        return data[0].content || data[0].message || data[0].text || "Sorry, I couldn't understand the response.";
+      }
 
-class ChatWidget {
+      if (typeof data === 'object' && data !== null) {
+        return data;
+      }
 
-constructor(config) {
-  this.config = Object.assign({
-    primaryColor: '#5B8DEF',
-    companyName: 'Support',
-    logoUrl: '',
-    welcomeMessage: 'Hello! How can we help?',
-    apiUrl: 'https://proxy-server-repo.vercel.app/api/chat',
-    container: 'body'
-  }, config);
+      if (typeof data === 'string') {
+        return data;
+      }
 
-  this.elements = {};
-  // Pass config to loadState to ensure welcome message is available
-  this.state = this.loadState(this.config);
-  this.isThinking = false;
-}
-
-init() {
-  if (document.querySelector('.chat-widget-button')) {
-    console.warn("Chat Widget is already initialized.");
-    return this;
-  }
-
-  this.createElements();
-  this.attachEventListeners();
-
-  const containerEl = document.querySelector(this.config.container);
-  if (containerEl) {
-    containerEl.appendChild(this.elements.button);
-    containerEl.appendChild(this.elements.panel);
-  } else {
-    console.error(`Chat Widget container "${this.config.container}" not found.`);
-    return this;
-  }
-
-  this.applyTheme();
-  this.restoreUIState();
-  return this;
-}
-
-createElements() {
-  // Create button with proper SVG icon
-  this.elements.button = this.createElement('button', {
-    className: 'chat-widget-button',
-    ariaLabel: 'Toggle Chat Window',
-    innerHTML: `<svg class="chat-widget-button-icon" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4v3c0 .6.4 1 1 1 .2 0 .5-.1.7-.3L14.6 18H20c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-    </svg>`
-  });
-
-  this.elements.panel = this.createElement('div', { className: 'chat-widget-panel' });
-
-  const header = this.createHeader();
-  const messagesContainer = this.createMessagesContainer();
-  const inputArea = this.createInputArea();
-
-  this.elements.panel.appendChild(header);
-  this.elements.panel.appendChild(messagesContainer);
-  this.elements.panel.appendChild(inputArea);
-}
-
-createHeader() {
-  const header = this.createElement('div', { className: 'chat-widget-header' });
-
-  const avatarDiv = this.createElement('div', { className: 'chat-widget-header-avatar' });
-  if (this.config.logoUrl) {
-    const avatarImg = this.createElement('img', { src: this.config.logoUrl, alt: 'Logo' });
-    avatarDiv.appendChild(avatarImg);
-  }
-
-  const titleDiv = this.createElement('div', { className: 'chat-widget-header-title' });
-  const companyName = this.createElement('h3', { textContent: this.config.companyName });
-  const status = this.createElement('span', { textContent: 'Online' });
-  titleDiv.appendChild(companyName);
-  titleDiv.appendChild(status);
-
-  const closeBtn = this.createElement('button', { 
-    className: 'chat-widget-close-btn', 
-    innerHTML: '×', 
-    ariaLabel: 'Close Chat' 
-  });
-
-  header.appendChild(avatarDiv);
-  header.appendChild(titleDiv);
-  header.appendChild(closeBtn);
-
-  return header;
-}
-
-createMessagesContainer() {
-  const messagesContainer = this.createElement('div', { className: 'chat-widget-messages' });
-
-  this.state.history.forEach(msg => {
-    this.addMessageToUI(msg.sender, msg.text, messagesContainer);
-  });
-
-  return messagesContainer;
-}
-
-createInputArea() {
-  const inputArea = this.createElement('div', { className: 'chat-widget-input-area' });
-
-  const input = this.createElement('input', { 
-    type: 'text', 
-    placeholder: 'Type a message...' 
-  });
-
-  // Create send button with proper SVG icon
-  const sendButton = this.createElement('button', { 
-    ariaLabel: 'Send Message', 
-    innerHTML: `<svg class="chat-widget-send-icon" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-    </svg>` 
-  });
-
-  inputArea.appendChild(input);
-  inputArea.appendChild(sendButton);
-
-  return inputArea;
-}
-
-createElement(tag, props) {
-  const el = document.createElement(tag);
-  Object.keys(props).forEach(key => el[key] = props[key]);
-  return el;
-}
-
-attachEventListeners() {
-  this.elements.button.addEventListener('click', () => this.toggle());
-  this.elements.panel.querySelector('.chat-widget-close-btn').addEventListener('click', () => this.close());
-
-  const input = this.elements.panel.querySelector('input');
-  const sendButton = this.elements.panel.querySelector('.chat-widget-input-area button');
-
-  sendButton.addEventListener('click', () => this.handleSendMessage());
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') this.handleSendMessage();
-  });
-}
-
-handleSendMessage() {
-  const input = this.elements.panel.querySelector('input');
-  const text = input.value;
-
-  if (!text.trim() || this.isThinking) return;
-
-  this.addMessage('user', text);
-  input.value = '';
-  this.sendToWebhook(text);
-}
-
-async sendToWebhook(text) {
-  if (!this.config.apiUrl) {
-    console.error("Chat Widget: apiUrl is not configured.");
-    this.addMessage('assistant', "Error: Chat service is not configured correctly.");
-    return;
-  }
-
-  this.isThinking = true;
-  this.showTypingIndicator();
-
-  try {
-    console.log('Sending message to API:', text);
-
-    const response = await fetch(this.config.apiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, user: { sessionId: this.state.sessionId } })
-    });
-
-    if (!response.ok) { 
-      throw new Error(`HTTP error! status: ${response.status}`); 
+      return "Sorry, I received an unhandled response format.";
+    }
+    
+    toggle() {
+      this.state.isOpen ? this.close() : this.open();
+    }
+    
+    open() {
+      this.elements.panel.classList.add('open');
+      this.elements.button.classList.add('open');
+      this.state.isOpen = true;
+      this.saveState();
+    }
+    
+    close() {
+      this.elements.panel.classList.remove('open');
+      this.elements.button.classList.remove('open');
+      this.state.isOpen = false;
+      this.saveState();
+    }
+    
+    addMessage(sender, text) {
+      const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
+      this.addMessageToUI(sender, text, messagesContainer);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+      if (sender !== 'indicator') {
+        this.state.history.push({ sender, text });
+        this.saveState();
+      }
     }
 
-    const data = await response.json();
-    console.log('Received response from API:', data);
+    addMessageToUI(sender, text, container) {
+      console.log('addMessageToUI called with:', sender, typeof text, text);
 
-    const reply = this.extractReply(data);
-    this.addMessage('assistant', reply);
-
-  } catch (error) {
-    console.error("Error calling API:", error);
-    this.addMessage('assistant', "Sorry, something went wrong. Please try again.");
-  } finally {
-    this.isThinking = false;
-    this.hideTypingIndicator();
-  }
-}
-
-extractReply(data) {
-  console.log('Extracting reply from data:', data);
-
-  // Handle the new format where data is an array of message objects
-  if (Array.isArray(data) && data.length > 0) {
-    // If the first item has a content property, return the entire array as a JSON string
-    if (data[0].content !== undefined) {
-      console.log('Found array format with content property');
-      return JSON.stringify(data);
-    }
-    // Otherwise, try to extract content from the first item
-    return data[0].content || data[0].message || data[0].text || "Sorry, I couldn't understand the response.";
-  }
-
-  // Handle the old format where data is a single object
-  if (typeof data === 'object' && data !== null) {
-    return data.content || data.message || data.text || "Sorry, I couldn't understand the response.";
-  }
-
-  // Handle the case where data is a string
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return "Sorry, I received an unhandled response format.";
-}
-
-toggle() {
-  this.state.isOpen ? this.close() : this.open();
-}
-
-open() {
-  this.elements.panel.classList.add('open');
-  this.elements.button.classList.add('open');
-  this.state.isOpen = true;
-  this.saveState();
-}
-
-close() {
-  this.elements.panel.classList.remove('open');
-  this.elements.button.classList.remove('open');
-  this.state.isOpen = false;
-  this.saveState();
-}
-
-addMessage(sender, text) {
-  // Add to UI
-  const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-  this.addMessageToUI(sender, text, messagesContainer);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-  // Add to state and save if it's not a temporary indicator
-  if (sender !== 'indicator') {
-    this.state.history.push({ sender, text });
-    this.saveState();
-  }
-}
-
-// Modified to handle the new JSON format
-addMessageToUI(sender, text, container) {
-  console.log('addMessageToUI called with:', sender, typeof text, text);
-
-  if (sender === 'assistant') {
-    // Try to parse the text as JSON to handle the new format
-    try {
-      const data = JSON.parse(text);
-      console.log('Parsed JSON data:', data);
-
-      if (Array.isArray(data) && data.length > 0 && data[0].content !== undefined) {
-        console.log('Processing array format with content');
-        // Handle the new format
-        data.forEach((item, index) => {
-          console.log(`Processing item ${index}:`, item);
-
-          if (item.content) {
-            // Add the text content
-            const textEl = this.createMessageElement(sender, item.content);
-            container.appendChild(textEl);
-            console.log('Added text element:', item.content);
-
-            // If it's a product_list type and has products, create a carousel
-            if (item.type === 'product_list' && item.products && Array.isArray(item.products) && item.products.length > 0) {
-              console.log('Creating carousel with products:', item.products.length, item.products);
+      if (sender === 'assistant') {
+        if (Array.isArray(text)) {
+          text.forEach(item => {
+            if (item.content) {
+              const textEl = this.createMessageElement(sender, item.content);
+              container.appendChild(textEl);
+            }
+            if (item.type === 'product_list' && Array.isArray(item.products) && item.products.length > 0) {
               const carouselEl = this.createCarouselElement(item.products);
               container.appendChild(carouselEl);
             }
-          }
-        });
-      } else {
-        // Fall back to the old format
-        console.log('Using fallback format');
-        const products = this.parseProductsFromText(text);
-        if (products.length > 0) {
-          // Extract text that is NOT part of the PRODUCTS_JSON
-          const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
-          if (mainText) {
-            const textEl = this.createMessageElement(sender, mainText);
-            container.appendChild(textEl);
-          }
-          const carouselEl = this.createCarouselElement(products);
-          container.appendChild(carouselEl);
-        } else {
-          // No products found, display as plain text
-          const msgEl = this.createMessageElement(sender, text);
-          container.appendChild(msgEl);
+          });
+          return;
         }
-      }
-    } catch (error) {
-      console.log('JSON parsing failed, using text as-is:', error);
-      // If JSON parsing fails, fall back to the old format
-      const products = this.parseProductsFromText(text);
-      if (products.length > 0) {
-        // Extract text that is NOT part of the PRODUCTS_JSON
-        const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
-        if (mainText) {
-          const textEl = this.createMessageElement(sender, mainText);
+
+        if (typeof text === 'object' && text.content) {
+          const textEl = this.createMessageElement(sender, text.content);
           container.appendChild(textEl);
+          if (text.type === 'product_list' && Array.isArray(text.products)) {
+            const carouselEl = this.createCarouselElement(text.products);
+            container.appendChild(carouselEl);
+          }
+          return;
         }
-        const carouselEl = this.createCarouselElement(products);
-        container.appendChild(carouselEl);
+
+        const msgEl = this.createMessageElement(sender, String(text));
+        container.appendChild(msgEl);
+
       } else {
-        // No products found, display as plain text
         const msgEl = this.createMessageElement(sender, text);
         container.appendChild(msgEl);
       }
     }
-  } else {
-    // For user messages
-    const msgEl = this.createMessageElement(sender, text);
-    container.appendChild(msgEl);
-  }
-}
 
-// Parse PRODUCTS_JSON from text (old format)
-parseProductsFromText(text) {
-  const products = [];
-  const match = text.match(/PRODUCTS_JSON:\s*(\[.*?\])/s);
-  if (match) {
-    try {
-      const productsData = JSON.parse(match[1]);
-      return productsData.map(product => ({
-        title: product.title || 'Product',
-        price: product.price || '',
-        currency: product.currency || '',
-        url: product.url || '#',
-        image_url: product.image_url || ''
-      }));
-    } catch (error) {
-      console.error('Error parsing PRODUCTS_JSON:', error);
+    createMessageElement(sender, text) {
+      const msgDiv = this.createElement('div', { className: `chat-widget-message ${sender}` });
+      const p = this.createElement('p', { textContent: text });
+      msgDiv.appendChild(p);
+      return msgDiv;
     }
-  }
-  return products;
-}
 
-createMessageElement(sender, text) {
-  const msgDiv = this.createElement('div', { className: `chat-widget-message ${sender}` });
-  const p = this.createElement('p', { textContent: text });
-  msgDiv.appendChild(p);
-  return msgDiv;
-}
+    createCarouselElement(products) {
+      console.log('Creating carousel element with products:', products);
 
-createCarouselElement(products) {
-  console.log('Creating carousel element with products:', products);
+      const container = this.createElement('div', { className: 'product-carousel-container' });
+      const carousel = this.createElement('div', { className: 'product-carousel' });
 
-  const container = this.createElement('div', { className: 'product-carousel-container' });
-  const carousel = this.createElement('div', { className: 'product-carousel' });
+      let displayProducts = [...products];
+      while (displayProducts.length > 0 && displayProducts.length < 3) {
+        displayProducts = [...displayProducts, ...products];
+      }
 
-  // For a good coverflow effect, we need at least 3 items. Duplicate if necessary.
-  let displayProducts = [...products];
-  while (displayProducts.length > 0 && displayProducts.length < 3) {
-    displayProducts = [...displayProducts, ...products];
-  }
+      const productCount = displayProducts.length;
+      if (productCount === 0) {
+        return container;
+      }
 
-  const productCount = displayProducts.length;
-  if (productCount === 0) {
-    console.log('No products to display');
-    return container;
-  }
+      const allProducts = [...displayProducts, ...displayProducts, ...displayProducts];
 
-  // Create three sets of products for a seamless infinite loop
-  const allProducts = [...displayProducts, ...displayProducts, ...displayProducts];
-  console.log('Creating', allProducts.length, 'product cards');
+      allProducts.forEach((product) => {
+        const cardLink = this.createElement('a', {
+          href: product.url,
+          className: 'product-card',
+          target: '_blank',
+          rel: 'noopener noreferrer'
+        });
 
-  allProducts.forEach((product, index) => {
-    const cardLink = this.createElement('a', {
-      href: product.url,
-      className: 'product-card',
-      target: '_blank',
-      rel: 'noopener noreferrer'
-    });
+        const img = this.createElement('img', {
+          src: product.image_url,
+          alt: product.title,
+          loading: 'lazy'
+        });
 
-    const img = this.createElement('img', {
-      src: product.image_url,
-      alt: product.title,
-      loading: 'lazy'
-    });
+        img.onerror = function() {
+          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OTk5OSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5JbWFnZTwvdGV4dD48L3N2Zz4=';
+        };
 
-    // Add error handling for images
-    img.onerror = function() {
-      this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OTk5OSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5JbWFnZTwvdGV4dD48L3N2Zz4=';
-    };
+        const title = this.createElement('h4', {
+          className: 'product-title',
+          textContent: product.title
+        });
 
-    const title = this.createElement('h4', {
-      className: 'product-title',
-      textContent: product.title
-    });
+        cardLink.appendChild(img);
+        cardLink.appendChild(title);
 
-    cardLink.appendChild(img);
-    cardLink.appendChild(title);
+        if (product.price) {
+          const price = this.createElement('p', {
+            className: 'product-price',
+            textContent: `${product.price} ${product.currency}`
+          });
+          cardLink.appendChild(price);
+        }
 
-    if (product.price) {
-      const price = this.createElement('p', {
-        className: 'product-price',
-        textContent: `${product.price} ${product.currency}`
+        carousel.appendChild(cardLink);
       });
-      cardLink.appendChild(price);
+
+      container.appendChild(carousel);
+      carousel.dataset.currentIndex = productCount;
+      carousel.dataset.productCount = productCount;
+      carousel.dataset.isTransitioning = 'false';
+
+      if (products.length > 1) {
+        const prevButton = this.createElement('button', {
+          className: 'carousel-arrow prev',
+          innerHTML: '❮',
+          ariaLabel: 'Previous product'
+        });
+
+        const nextButton = this.createElement('button', {
+          className: 'carousel-arrow next',
+          innerHTML: '❯',
+          ariaLabel: 'Next product'
+        });
+
+        container.appendChild(prevButton);
+        container.appendChild(nextButton);
+
+        prevButton.addEventListener('click', () => this.navigateCarousel(carousel, -1));
+        nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
+      }
+
+      requestAnimationFrame(() => {
+        this.setupCarousel(carousel);
+      });
+
+      return container;
     }
 
-    carousel.appendChild(cardLink);
-  });
+    setupCarousel(carousel) {
+      const cardWidth = 180;
+      const gap = 20;
+      const totalCardWidth = cardWidth + gap;
+      const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-  container.appendChild(carousel);
+      carousel.style.width = `${carousel.children.length * totalCardWidth}px`;
 
-  // Attach state variables to the DOM element
-  carousel.dataset.currentIndex = productCount;
-  carousel.dataset.productCount = productCount;
-  carousel.dataset.isTransitioning = 'false';
+      const containerWidth = carousel.parentElement.offsetWidth;
+      const centerOffset = (containerWidth - cardWidth) / 2;
+      const initialX = centerOffset - (initialIndex * totalCardWidth);
+      carousel.style.transform = `translateX(${initialX}px)`;
 
-  // Add navigation arrows if there's more than one unique product
-  if (products.length > 1) {
-    const prevButton = this.createElement('button', {
-      className: 'carousel-arrow prev',
-      innerHTML: '❮',
-      ariaLabel: 'Previous product'
-    });
-
-    const nextButton = this.createElement('button', {
-      className: 'carousel-arrow next',
-      innerHTML: '❯',
-      ariaLabel: 'Next product'
-    });
-
-    container.appendChild(prevButton);
-    container.appendChild(nextButton);
-
-    prevButton.addEventListener('click', () => this.navigateCarousel(carousel, -1));
-    nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
-  }
-
-  // Initialize carousel position after elements are rendered
-  requestAnimationFrame(() => {
-    console.log('Setting up carousel with requestAnimationFrame');
-    this.setupCarousel(carousel);
-  });
-
-  console.log('Carousel element created');
-  return container;
-}
-
-setupCarousel(carousel) {
-  console.log('Setting up carousel');
-  const cardWidth = 180; // Must match CSS
-  const gap = 20; // Must match CSS
-  const totalCardWidth = cardWidth + gap;
-  const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
-
-  // Set carousel width
-  carousel.style.width = `${carousel.children.length * totalCardWidth}px`;
-
-  // Position the carousel to show the first item of the middle block
-  const containerWidth = carousel.parentElement.offsetWidth;
-  const centerOffset = (containerWidth - cardWidth) / 2;
-  const initialX = centerOffset - (initialIndex * totalCardWidth);
-  carousel.style.transform = `translateX(${initialX}px)`;
-
-  // Apply initial coverflow effect
-  this.updateCoverflowEffect(carousel, initialIndex);
-  console.log('Carousel setup complete');
-}
-
-navigateCarousel(carousel, direction) {
-  if (carousel.dataset.isTransitioning === 'true') return;
-
-  carousel.dataset.isTransitioning = 'true';
-  let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
-  const productCount = parseInt(carousel.dataset.productCount, 10);
-  const cardWidth = 180;
-  const gap = 20;
-  const totalCardWidth = cardWidth + gap;
-
-  currentIndex += direction;
-  carousel.dataset.currentIndex = currentIndex;
-
-  // Move carousel with transition
-  carousel.style.transition = 'transform 0.4s ease';
-  const containerWidth = carousel.parentElement.offsetWidth;
-  const centerOffset = (containerWidth - cardWidth) / 2;
-  const newX = centerOffset - (currentIndex * totalCardWidth);
-  carousel.style.transform = `translateX(${newX}px)`;
-
-  this.updateCoverflowEffect(carousel, currentIndex);
-
-  // Use transitionend to handle the infinite scroll "jump"
-  const handleTransitionEnd = () => {
-    let needsReset = false;
-    if (currentIndex >= productCount * 2) { // Reached end of middle block
-      currentIndex -= productCount;
-      needsReset = true;
-    } else if (currentIndex < productCount) { // Reached start of middle block
-      currentIndex += productCount;
-      needsReset = true;
+      this.updateCoverflowEffect(carousel, initialIndex);
     }
 
-    if (needsReset) {
-      carousel.style.transition = 'none';
-      const resetX = centerOffset - (currentIndex * totalCardWidth);
-      carousel.style.transform = `translateX(${resetX}px)`;
+    navigateCarousel(carousel, direction) {
+      if (carousel.dataset.isTransitioning === 'true') return;
+
+      carousel.dataset.isTransitioning = 'true';
+      let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
+      const productCount = parseInt(carousel.dataset.productCount, 10);
+      const cardWidth = 180;
+      const gap = 20;
+      const totalCardWidth = cardWidth + gap;
+
+      currentIndex += direction;
       carousel.dataset.currentIndex = currentIndex;
+
+      carousel.style.transition = 'transform 0.4s ease';
+      const containerWidth = carousel.parentElement.offsetWidth;
+      const centerOffset = (containerWidth - cardWidth) / 2;
+      const newX = centerOffset - (currentIndex * totalCardWidth);
+      carousel.style.transform = `translateX(${newX}px)`;
+
+      this.updateCoverflowEffect(carousel, currentIndex);
+
+      const handleTransitionEnd = () => {
+        let needsReset = false;
+        if (currentIndex >= productCount * 2) {
+          currentIndex -= productCount;
+          needsReset = true;
+        } else if (currentIndex < productCount) {
+          currentIndex += productCount;
+          needsReset = true;
+        }
+
+        if (needsReset) {
+          carousel.style.transition = 'none';
+          const resetX = centerOffset - (currentIndex * totalCardWidth);
+          carousel.style.transform = `translateX(${resetX}px)`;
+          carousel.dataset.currentIndex = currentIndex;
+        }
+
+        carousel.dataset.isTransitioning = 'false';
+        carousel.removeEventListener('transitionend', handleTransitionEnd);
+      };
+
+      carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    carousel.dataset.isTransitioning = 'false';
-    carousel.removeEventListener('transitionend', handleTransitionEnd);
-  };
+    updateCoverflowEffect(carousel, centerIndex) {
+      const cards = carousel.querySelectorAll('.product-card');
+      cards.forEach((card, index) => {
+        const distance = index - centerIndex;
+        const absDistance = Math.abs(distance);
 
-  carousel.addEventListener('transitionend', handleTransitionEnd);
-}
-
-updateCoverflowEffect(carousel, centerIndex) {
-  const cards = carousel.querySelectorAll('.product-card');
-  cards.forEach((card, index) => {
-    const distance = index - centerIndex;
-    const absDistance = Math.abs(distance);
-
-    if (distance === 0) {
-      // Center card
-      card.style.transform = 'translateZ(0px) scale(1)';
+        if (distance === 0) {
+          card.style.transform = 'translateZ(0px) scale(1)';
       card.style.opacity = '1';
       card.style.zIndex = '10';
     } else {
