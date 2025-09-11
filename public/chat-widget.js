@@ -378,8 +378,7 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const cardGap = 10; // Add a gap between cards
-        const totalCardWidth = cardWidth + cardGap; 
+        const totalCardWidth = cardWidth * 0.7; // Adjusted for overlap
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
@@ -388,7 +387,7 @@
         
         carousel.style.transition = 'none';
         carousel.style.transform = `translateX(${initialX}px)`;
-        this.updateCarouselStyles(carousel, initialIndex);
+        this.updateCoverflowEffect(carousel, initialIndex);
 
         setTimeout(() => {
             carousel.style.transition = 'transform 0.4s ease';
@@ -402,8 +401,7 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const cardGap = 10;
-        const totalCardWidth = cardWidth + cardGap;
+        const totalCardWidth = cardWidth * 0.7; // Adjusted for overlap
 
         currentIndex += direction;
         carousel.dataset.currentIndex = currentIndex;
@@ -414,7 +412,7 @@
         const newX = centerOffset - (currentIndex * totalCardWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
-        this.updateCarouselStyles(carousel, currentIndex);
+        this.updateCoverflowEffect(carousel, currentIndex);
         
         const handleTransitionEnd = () => {
             carousel.removeEventListener('transitionend', handleTransitionEnd);
@@ -432,8 +430,8 @@
                 carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * totalCardWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
+                this.updateCoverflowEffect(carousel, currentIndex);
                 
-                // Use a minimal timeout to allow the jump to happen before re-enabling transitions
                 setTimeout(() => {
                     carousel.style.transition = 'transform 0.4s ease';
                 }, 20);
@@ -444,22 +442,36 @@
         carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    updateCarouselStyles(carousel, centerIndex) {
+    updateCoverflowEffect(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
-            
-            card.style.transform = '';
+            const absDistance = Math.abs(distance);
+            const side = Math.sign(distance);
 
-            if (distance === 0) {
-                // Center card: slightly larger and fully visible
-                card.style.opacity = '1';
-                card.style.transform = 'scale(1.05)';
+            let transform = '';
+            let opacity = '0';
+            let zIndex = '0';
+
+            if (absDistance <= 1) { // Show center and immediate neighbors
+                opacity = '1';
+                zIndex = `${20 - absDistance}`;
+                
+                const scale = distance === 0 ? 1.05 : 0.9;
+                const rotateY = distance === 0 ? 0 : -50 * side;
+                const translateX = distance === 0 ? 0 : 60 * side;
+                const translateZ = distance === 0 ? 50 : -20;
+                
+                transform = `translateX(${translateX}%) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
             } else {
-                // Side cards: normal size and fully visible
-                card.style.opacity = '1';
-                card.style.transform = 'scale(1)';
+                 // Hide cards that are further away
+                 opacity = '0';
+                 transform = `scale(0.8)`;
             }
+
+            card.style.transform = transform;
+            card.style.opacity = opacity;
+            card.style.zIndex = zIndex;
         });
     }
 
