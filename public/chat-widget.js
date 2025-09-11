@@ -333,7 +333,6 @@
 
                 prevButton.addEventListener('click', () => {
                     const currentScroll = carousel.scrollLeft;
-                    const newScroll = currentScroll - cardWidth;
                     
                     // Disable smooth scrolling temporarily for instant jump
                     carousel.style.scrollBehavior = 'auto';
@@ -352,7 +351,6 @@
 
                 nextButton.addEventListener('click', () => {
                     const currentScroll = carousel.scrollLeft;
-                    const newScroll = currentScroll + cardWidth;
                     const maxScroll = (originalLength * 2) * cardWidth;
                     
                     // Disable smooth scrolling temporarily for instant jump
