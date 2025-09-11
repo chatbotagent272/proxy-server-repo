@@ -378,12 +378,11 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const stepWidth = cardWidth * 0.6; // How much to move for each step (for overlap)
+        const stepWidth = cardWidth / 2.2; // How much to move for each step (for overlap)
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
-        // ADJUSTED a single line here to correct the centering
-        const centerOffset = (containerWidth / 2);
+        const centerOffset = (containerWidth - cardWidth) / 2;
         const initialX = centerOffset - (initialIndex * stepWidth);
         
         carousel.style.transition = 'none';
@@ -402,14 +401,13 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const stepWidth = cardWidth * 0.6;
+        const stepWidth = cardWidth / 2.2; // How much to move for each step (for overlap)
 
         currentIndex += direction;
         
         carousel.style.transition = 'transform 0.4s ease';
         const containerWidth = carousel.parentElement.offsetWidth;
-        // ADJUSTED a single line here to correct the centering
-        const centerOffset = (containerWidth / 2);
+        const centerOffset = (containerWidth - cardWidth) / 2;
         const newX = centerOffset - (currentIndex * stepWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
@@ -449,7 +447,6 @@
 
     updateCoverflowEffect(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
-        const cardWidth = 140;
 
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
@@ -457,7 +454,7 @@
             const side = Math.sign(distance);
 
             let transform = '';
-            let opacity = '0.4';
+            let opacity = '0.5';
             let zIndex = `${10 - absDistance}`;
 
             if (distance === 0) {
@@ -467,12 +464,11 @@
                 transform = `translateZ(40px) rotateY(0deg) scale(1.05)`;
             } else if (absDistance < 3) {
                 // Visible side cards
-                const xTranslate = side * (cardWidth * 0.4); // Overlap control
                 const zTranslate = -30 * absDistance; // Depth control
                 const yRotate = -45 * side; // Angle control
-                const scale = 1 - (absDistance * 0.1);
+                const scale = 1 - (absDistance * 0.15);
                 
-                transform = `translateX(${xTranslate}px) translateZ(${zTranslate}px) rotateY(${yRotate}deg) scale(${scale})`;
+                transform = `translateZ(${zTranslate}px) rotateY(${yRotate}deg) scale(${scale})`;
             } else {
                 // Far-away cards (make them invisible but keep in DOM)
                 opacity = '0';
@@ -559,5 +555,6 @@
     };
 
 })(window);
+
 
 
