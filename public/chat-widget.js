@@ -141,13 +141,20 @@
             }
         }
         extractReply(data) {
-            if (Array.isArray(data) && data[0]) { 
-                const item = data[0]; 
-                return item.content || item.message || item.text || "Sorry, I couldn't understand the response."; 
+            // Handle the new format where data is an array of message objects
+            if (Array.isArray(data) && data.length > 0) {
+                // If the first item has a content property, return the entire array as a JSON string
+                if (data[0].content !== undefined) {
+                    return JSON.stringify(data);
+                }
+                // Otherwise, try to extract content from the first item
+                return data[0].content || data[0].message || data[0].text || "Sorry, I couldn't understand the response.";
             }
+            // Handle the old format where data is a single object
             if (typeof data === 'object' && data !== null) { 
                 return data.content || data.message || data.text || "Sorry, I couldn't understand the response."; 
             }
+            // Handle the case where data is a string
             if (typeof data === 'string') { 
                 return data; 
             }
@@ -182,24 +189,64 @@
                 this.saveState();
             }
         }
-        // Modified to handle PRODUCTS_JSON format
+        // Modified to handle the new JSON format
         addMessageToUI(sender, text, container) {
             if (sender === 'assistant') {
-                const products = this.parseProductsFromText(text);
-                
-                if (products.length > 0) {
-                    // Extract text that is NOT part of the PRODUCTS_JSON
-                    const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
-                    if (mainText) {
-                        const textEl = this.createMessageElement(sender, mainText);
-                        container.appendChild(textEl);
+                // Try to parse the text as JSON to handle the new format
+                try {
+                    const data = JSON.parse(text);
+                    if (Array.isArray(data) && data.length > 0 && data[0].content !== undefined) {
+                        // Handle the new format
+                        data.forEach(item => {
+                            if (item.content) {
+                                // Add the text content
+                                const textEl = this.createMessageElement(sender, item.content);
+                                container.appendChild(textEl);
+                                
+                                // If it's a product_list type and has products, create a carousel
+                                if (item.type === 'product_list' && item.products && Array.isArray(item.products) && item.products.length > 0) {
+                                    const carouselEl = this.createCarouselElement(item.products);
+                                    container.appendChild(carouselEl);
+                                }
+                            }
+                        });
+                    } else {
+                        // Fall back to the old format
+                        const products = this.parseProductsFromText(text);
+                        
+                        if (products.length > 0) {
+                            // Extract text that is NOT part of the PRODUCTS_JSON
+                            const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
+                            if (mainText) {
+                                const textEl = this.createMessageElement(sender, mainText);
+                                container.appendChild(textEl);
+                            }
+                            const carouselEl = this.createCarouselElement(products);
+                            container.appendChild(carouselEl);
+                        } else {
+                            // No products found, display as plain text
+                            const msgEl = this.createMessageElement(sender, text);
+                            container.appendChild(msgEl);
+                        }
                     }
-                    const carouselEl = this.createCarouselElement(products);
-                    container.appendChild(carouselEl);
-                } else {
-                    // No products found, display as plain text
-                    const msgEl = this.createMessageElement(sender, text);
-                    container.appendChild(msgEl);
+                } catch (error) {
+                    // If JSON parsing fails, fall back to the old format
+                    const products = this.parseProductsFromText(text);
+                    
+                    if (products.length > 0) {
+                        // Extract text that is NOT part of the PRODUCTS_JSON
+                        const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
+                        if (mainText) {
+                            const textEl = this.createMessageElement(sender, mainText);
+                            container.appendChild(textEl);
+                        }
+                        const carouselEl = this.createCarouselElement(products);
+                        container.appendChild(carouselEl);
+                    } else {
+                        // No products found, display as plain text
+                        const msgEl = this.createMessageElement(sender, text);
+                        container.appendChild(msgEl);
+                    }
                 }
             } else {
                 // For user messages
@@ -208,7 +255,7 @@
             }
         }
         
-        // Parse PRODUCTS_JSON from text
+        // Parse PRODUCTS_JSON from text (old format)
         parseProductsFromText(text) {
             const products = [];
             const match = text.match(/PRODUCTS_JSON:\s*(\[.*?\])/s);
@@ -271,7 +318,7 @@
                 if (product.price) {
                     const price = this.createElement('p', { 
                         className: 'product-price',
-                        textContent: `${product.price} ${product.currency}` 
+                        textContent: `${product.price} ${product.currency}`
                     });
                     cardLink.appendChild(price);
                 }
