@@ -39,7 +39,6 @@
             
             this.applyTheme();
             this.restoreUIState();
-            this.injectStyles();
             return this;
         }
 
@@ -277,8 +276,13 @@
                     alt: product.title,
                     loading: 'lazy'
                 });
-                const title = this.createElement('h4', { textContent: product.title });
                 
+                const title = this.createElement('h4', { 
+                    className: 'product-title',
+                    textContent: product.title 
+                });
+                
+                // Add elements in correct order: image, title, price
                 cardLink.appendChild(img);
                 cardLink.appendChild(title);
                 
@@ -331,35 +335,39 @@
                     const currentScroll = carousel.scrollLeft;
                     const newScroll = currentScroll - cardWidth;
                     
-                    carousel.scrollTo({
-                        left: newScroll,
-                        behavior: 'smooth'
-                    });
+                    // Disable smooth scrolling temporarily for instant jump
+                    carousel.style.scrollBehavior = 'auto';
                     
-                    // Handle infinite scroll
+                    // Handle infinite scroll - jump to end if at beginning
+                    if (currentScroll <= cardWidth) {
+                        carousel.scrollLeft = (originalLength * 2) * cardWidth;
+                    }
+                    
+                    // Re-enable smooth scrolling and move
                     setTimeout(() => {
-                        if (carousel.scrollLeft <= 0) {
-                            carousel.scrollLeft = originalLength * cardWidth;
-                        }
-                    }, 300);
+                        carousel.style.scrollBehavior = 'smooth';
+                        carousel.scrollLeft = carousel.scrollLeft - cardWidth;
+                    }, 10);
                 });
 
                 nextButton.addEventListener('click', () => {
                     const currentScroll = carousel.scrollLeft;
                     const newScroll = currentScroll + cardWidth;
+                    const maxScroll = (originalLength * 2) * cardWidth;
                     
-                    carousel.scrollTo({
-                        left: newScroll,
-                        behavior: 'smooth'
-                    });
+                    // Disable smooth scrolling temporarily for instant jump
+                    carousel.style.scrollBehavior = 'auto';
                     
-                    // Handle infinite scroll
+                    // Handle infinite scroll - jump to beginning if at end
+                    if (currentScroll >= maxScroll - cardWidth) {
+                        carousel.scrollLeft = originalLength * cardWidth;
+                    }
+                    
+                    // Re-enable smooth scrolling and move
                     setTimeout(() => {
-                        const maxScroll = (originalLength * 2) * cardWidth;
-                        if (carousel.scrollLeft >= maxScroll) {
-                            carousel.scrollLeft = originalLength * cardWidth;
-                        }
-                    }, 300);
+                        carousel.style.scrollBehavior = 'smooth';
+                        carousel.scrollLeft = carousel.scrollLeft + cardWidth;
+                    }, 10);
                 });
             }
 
@@ -376,15 +384,27 @@
                 const cardCenter = cardRect.left + cardRect.width / 2;
                 const distance = Math.abs(containerCenter - cardCenter);
                 
-                // Calculate opacity based on distance from center
-                const maxDistance = containerRect.width / 2;
-                const opacity = Math.max(0.3, 1 - (distance / maxDistance));
+                // Calculate opacity and scale based on distance from center
+                const maxDistance = 200; // Adjust this value to control the effect range
+                let opacity, scale;
+                
+                if (distance < 50) {
+                    // Center card - full opacity and slight scale
+                    opacity = 1;
+                    scale = 1.05;
+                } else if (distance < maxDistance) {
+                    // Side cards - reduced opacity, normal scale
+                    opacity = Math.max(0.3, 1 - (distance / maxDistance));
+                    scale = 1;
+                } else {
+                    // Far cards - minimal opacity
+                    opacity = 0.3;
+                    scale = 1;
+                }
                 
                 card.style.opacity = opacity;
-                
-                // Add scale effect for center item
-                const scale = distance < 50 ? 1.05 : 1;
                 card.style.transform = `scale(${scale})`;
+                card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             });
         }
 
@@ -415,129 +435,6 @@
         applyTheme() {
             document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
         }
-
-        injectStyles() {
-            if (document.getElementById('chat-widget-carousel-styles')) return;
-            
-            const style = document.createElement('style');
-            style.id = 'chat-widget-carousel-styles';
-            style.textContent = `
-                .product-carousel-container {
-                    position: relative;
-                    margin: 15px 0;
-                    padding: 0 30px;
-                }
-
-                .product-carousel {
-                    display: flex;
-                    gap: 20px;
-                    overflow-x: auto;
-                    scroll-behavior: smooth;
-                    scrollbar-width: none;
-                    -ms-overflow-style: none;
-                    padding: 10px 0;
-                }
-
-                .product-carousel::-webkit-scrollbar {
-                    display: none;
-                }
-
-                .product-card {
-                    flex: 0 0 180px;
-                    background: #fff;
-                    border-radius: 12px;
-                    padding: 15px;
-                    text-decoration: none;
-                    color: inherit;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-                    transition: all 0.3s ease;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    text-align: center;
-                }
-
-                .product-card:hover {
-                    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-                    transform: translateY(-2px) !important;
-                }
-
-                .product-card img {
-                    width: 100%;
-                    height: 120px;
-                    object-fit: cover;
-                    border-radius: 8px;
-                    margin-bottom: 10px;
-                }
-
-                .product-card h4 {
-                    font-size: 14px;
-                    font-weight: 600;
-                    margin: 0 0 8px 0;
-                    line-height: 1.3;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                }
-
-                .product-card .product-price {
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: var(--chat-widget-primary-color, #5B8DEF);
-                    margin: 0;
-                }
-
-                .carousel-arrow {
-                    position: absolute;
-                    top: 50%;
-                    transform: translateY(-50%);
-                    background: rgba(255,255,255,0.9);
-                    border: 1px solid #ddd;
-                    border-radius: 50%;
-                    width: 40px;
-                    height: 40px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    font-size: 18px;
-                    color: #333;
-                    z-index: 10;
-                    transition: all 0.2s ease;
-                }
-
-                .carousel-arrow:hover {
-                    background: #fff;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                }
-
-                .carousel-arrow.prev {
-                    left: 0;
-                }
-
-                .carousel-arrow.next {
-                    right: 0;
-                }
-
-                @media (max-width: 480px) {
-                    .product-carousel-container {
-                        padding: 0 25px;
-                    }
-                    
-                    .product-card {
-                        flex: 0 0 160px;
-                    }
-                    
-                    .carousel-arrow {
-                        width: 35px;
-                        height: 35px;
-                        font-size: 16px;
-                    }
-                }
-            `;
-            document.head.appendChild(style);
-        }
         
         saveState() {
             sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
@@ -567,8 +464,6 @@
         destroy() {
             if (this.elements.button) this.elements.button.remove();
             if (this.elements.panel) this.elements.panel.remove();
-            const styles = document.getElementById('chat-widget-carousel-styles');
-            if (styles) styles.remove();
         }
     }
 
