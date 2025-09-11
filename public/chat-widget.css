@@ -343,6 +343,7 @@
 }
 
 .product-card {
+  box-sizing: border-box; /* Fixes width calculation for JS */
   flex: 0 0 140px;
   height: 190px;
   background: #fff;
@@ -502,3 +503,4 @@
   .carousel-arrow { background: rgba(55, 65, 81, 0.9); border-color: #4b5563; color: #f9fafb; }
   .carousel-arrow:hover { background: #374151; }
 }
+
