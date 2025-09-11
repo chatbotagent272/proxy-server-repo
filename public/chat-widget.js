@@ -287,253 +287,254 @@
     }
 
     createCarouselElement(products) {
-      console.log('Creating carousel element with products:', products);
+        console.log('Creating carousel element with products:', products);
 
-      const container = this.createElement('div', { className: 'product-carousel-container' });
-      const carousel = this.createElement('div', { className: 'product-carousel' });
+        const container = this.createElement('div', { className: 'product-carousel-container' });
+        const carousel = this.createElement('div', { className: 'product-carousel' });
 
-      let displayProducts = [...products];
-      while (displayProducts.length > 0 && displayProducts.length < 3) {
-        displayProducts = [...displayProducts, ...products];
-      }
+        // Triple the products for seamless looping
+        const allProducts = [...products, ...products, ...products];
 
-      const productCount = displayProducts.length;
-      if (productCount === 0) {
-        return container;
-      }
+        allProducts.forEach((product) => {
+            const cardLink = this.createElement('a', {
+                href: product.url,
+                className: 'product-card',
+                target: '_blank',
+                rel: 'noopener noreferrer'
+            });
 
-      const allProducts = [...displayProducts, ...displayProducts, ...displayProducts];
+            const img = this.createElement('img', {
+                src: product.image_url,
+                alt: product.title,
+                loading: 'lazy'
+            });
+            img.onerror = function() {
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OTk5OSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5JbWFnZTwvdGV4dD48L3N2Zz4=';
+            };
 
-      allProducts.forEach((product) => {
-        const cardLink = this.createElement('a', {
-          href: product.url,
-          className: 'product-card',
-          target: '_blank',
-          rel: 'noopener noreferrer'
+            const title = this.createElement('h4', {
+                className: 'product-title',
+                textContent: product.title
+            });
+
+            cardLink.appendChild(img);
+            cardLink.appendChild(title);
+
+            // **UPDATED PRICE LOGIC**
+            const priceContainer = this.createElement('div', { className: 'product-price-container' });
+            const isDiscounted = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.currentPrice);
+
+            if (product.currentPrice) {
+                const currentPriceEl = this.createElement('p', {
+                    className: 'product-price',
+                    textContent: `${product.currentPrice} ${product.currency}`
+                });
+                priceContainer.appendChild(currentPriceEl);
+            }
+
+            if (isDiscounted) {
+                const originalPriceEl = this.createElement('p', {
+                    className: 'original-price',
+                    textContent: `${product.originalPrice} ${product.currency}`
+                });
+                priceContainer.appendChild(originalPriceEl);
+            }
+            cardLink.appendChild(priceContainer);
+            // **END OF UPDATED PRICE LOGIC**
+
+            carousel.appendChild(cardLink);
         });
 
-        const img = this.createElement('img', {
-          src: product.image_url,
-          alt: product.title,
-          loading: 'lazy'
-        });
+        container.appendChild(carousel);
+        
+        const productCount = products.length;
+        if (productCount === 0) return container;
 
-        img.onerror = function() {
-          this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2Y1ZjVmNSIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzk5OTk5OSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5JbWFnZTwvdGV4dD48L3N2Zz4=';
-        };
+        carousel.dataset.currentIndex = productCount; // Start at the beginning of the second set
+        carousel.dataset.productCount = productCount;
+        carousel.dataset.isTransitioning = 'false';
 
-        const title = this.createElement('h4', {
-          className: 'product-title',
-          textContent: product.title
-        });
-
-        cardLink.appendChild(img);
-        cardLink.appendChild(title);
-
-        if (product.price) {
-          const price = this.createElement('p', {
-            className: 'product-price',
-            textContent: `${product.price} ${product.currency}`
-          });
-          cardLink.appendChild(price);
+        if (products.length > 1) {
+            const prevButton = this.createElement('button', {
+                className: 'carousel-arrow prev',
+                innerHTML: '❮',
+                ariaLabel: 'Previous product'
+            });
+            const nextButton = this.createElement('button', {
+                className: 'carousel-arrow next',
+                innerHTML: '❯',
+                ariaLabel: 'Next product'
+            });
+            container.appendChild(prevButton);
+            container.appendChild(nextButton);
+            prevButton.addEventListener('click', () => this.navigateCarousel(carousel, -1));
+            nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
         }
 
-        carousel.appendChild(cardLink);
-      });
-
-      container.appendChild(carousel);
-      carousel.dataset.currentIndex = productCount;
-      carousel.dataset.productCount = productCount;
-      carousel.dataset.isTransitioning = 'false';
-
-      if (products.length > 1) {
-        const prevButton = this.createElement('button', {
-          className: 'carousel-arrow prev',
-          innerHTML: '❮',
-          ariaLabel: 'Previous product'
+        requestAnimationFrame(() => {
+            this.setupCarousel(carousel);
         });
 
-        const nextButton = this.createElement('button', {
-          className: 'carousel-arrow next',
-          innerHTML: '❯',
-          ariaLabel: 'Next product'
-        });
-
-        container.appendChild(prevButton);
-        container.appendChild(nextButton);
-
-        prevButton.addEventListener('click', () => this.navigateCarousel(carousel, -1));
-        nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
-      }
-
-      requestAnimationFrame(() => {
-        this.setupCarousel(carousel);
-      });
-
-      return container;
+        return container;
     }
 
     setupCarousel(carousel) {
-      const cardWidth = 140;
-      const gap = 5;
-      const totalCardWidth = cardWidth + gap;
-      const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
-
-      carousel.style.width = `${carousel.children.length * totalCardWidth}px`;
-
-      const containerWidth = carousel.parentElement.offsetWidth;
-      const centerOffset = (containerWidth - cardWidth) / 2;
-      const initialX = centerOffset - (initialIndex * totalCardWidth);
-      carousel.style.transform = `translateX(${initialX}px)`;
-
-      this.updateCoverflowEffect(carousel, initialIndex);
+        const cardWidth = 140; // from CSS
+        const totalCardWidth = cardWidth; // No gap, handled by transform
+        const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
+        
+        const containerWidth = carousel.parentElement.offsetWidth;
+        const centerOffset = (containerWidth / 2) - (cardWidth / 2);
+        const initialX = centerOffset - (initialIndex * totalCardWidth);
+        
+        carousel.style.transform = `translateX(${initialX}px)`;
+        this.updateCoverflowEffect(carousel, initialIndex);
     }
 
     navigateCarousel(carousel, direction) {
-      if (carousel.dataset.isTransitioning === 'true') return;
+        if (carousel.dataset.isTransitioning === 'true') return;
+        carousel.dataset.isTransitioning = 'true';
 
-      carousel.dataset.isTransitioning = 'true';
-      let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
-      const productCount = parseInt(carousel.dataset.productCount, 10);
-      const cardWidth = 140;
-      const gap = 5;
-      const totalCardWidth = cardWidth + gap;
+        let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
+        const productCount = parseInt(carousel.dataset.productCount, 10);
+        const cardWidth = 140;
+        const totalCardWidth = cardWidth;
 
-      currentIndex += direction;
-      carousel.dataset.currentIndex = currentIndex;
+        currentIndex += direction;
+        carousel.dataset.currentIndex = currentIndex;
 
-      carousel.style.transition = 'transform 0.4s ease';
-      const containerWidth = carousel.parentElement.offsetWidth;
-      const centerOffset = (containerWidth - cardWidth) / 2;
-      const newX = centerOffset - (currentIndex * totalCardWidth);
-      carousel.style.transform = `translateX(${newX}px)`;
+        carousel.style.transition = 'transform 0.4s ease';
+        
+        const containerWidth = carousel.parentElement.offsetWidth;
+        const centerOffset = (containerWidth / 2) - (cardWidth / 2);
+        const newX = centerOffset - (currentIndex * totalCardWidth);
+        carousel.style.transform = `translateX(${newX}px)`;
 
-      this.updateCoverflowEffect(carousel, currentIndex);
+        this.updateCoverflowEffect(carousel, currentIndex);
 
-      const handleTransitionEnd = () => {
-        let needsReset = false;
-        if (currentIndex >= productCount * 2) {
-          currentIndex -= productCount;
-          needsReset = true;
-        } else if (currentIndex < productCount) {
-          currentIndex += productCount;
-          needsReset = true;
-        }
+        carousel.addEventListener('transitionend', () => {
+            let needsReset = false;
+            if (currentIndex >= productCount * 2) {
+                currentIndex -= productCount;
+                needsReset = true;
+            } else if (currentIndex < productCount) {
+                currentIndex += productCount;
+                needsReset = true;
+            }
 
-        if (needsReset) {
-          carousel.style.transition = 'none';
-          const resetX = centerOffset - (currentIndex * totalCardWidth);
-          carousel.style.transform = `translateX(${resetX}px)`;
-          carousel.dataset.currentIndex = currentIndex;
-        }
+            if (needsReset) {
+                carousel.style.transition = 'none';
+                const resetX = centerOffset - (currentIndex * totalCardWidth);
+                carousel.style.transform = `translateX(${resetX}px)`;
+                carousel.dataset.currentIndex = currentIndex;
+                // Force a reflow before re-enabling transition
+                void carousel.offsetWidth; 
+                this.updateCoverflowEffect(carousel, currentIndex);
+            }
 
-        carousel.dataset.isTransitioning = 'false';
-        carousel.removeEventListener('transitionend', handleTransitionEnd);
-      };
-
-      carousel.addEventListener('transitionend', handleTransitionEnd);
+            carousel.dataset.isTransitioning = 'false';
+        }, { once: true });
     }
 
     updateCoverflowEffect(carousel, centerIndex) {
-  const cards = carousel.querySelectorAll('.product-card');
-  cards.forEach((card, index) => {
-    const distance = index - centerIndex;
-    const absDistance = Math.abs(distance);
-    
-    if (distance === 0) {
-      // Center card - fully visible and prominent
-      card.style.transform = 'translateX(0px) translateZ(30px) rotateY(0deg) scale(1.05)';
-      card.style.opacity = '1';
-      card.style.zIndex = '20';
-    } else if (absDistance === 1) {
-      // Immediate side cards - 35-40% visible, behind center card
-      const side = Math.sign(distance);
-      card.style.transform = `translateX(${side * 25}px) translateZ(-20px) rotateY(${side * 45}deg) scale(0.8)`;
-      card.style.opacity = '0.4';
-      card.style.zIndex = '10';
-    } else {
-      // Distant cards - barely visible, further back
-      const side = Math.sign(distance);
-      card.style.transform = `translateX(${side * 40 * absDistance}px) translateZ(-${40 * absDistance}px) rotateY(${side * 55}deg) scale(${Math.max(0.6, 0.8 - (absDistance * 0.1))})`;
-      card.style.opacity = `${Math.max(0.2, 0.4 - (absDistance * 0.1))}`;
-      card.style.zIndex = `${10 - absDistance}`;
+        const cards = carousel.querySelectorAll('.product-card');
+        cards.forEach((card, index) => {
+            const distance = index - centerIndex;
+            const absDistance = Math.abs(distance);
+            const side = Math.sign(distance);
+
+            const scale = 1 - (absDistance * 0.2);
+            const rotateY = -side * 45 * Math.min(absDistance, 1.5);
+            const translateX = side * (50 - (absDistance * 10)); // Pulls side cards closer
+            const translateZ = -absDistance * 50;
+            const opacity = Math.max(0, 1 - (absDistance * 0.4));
+            const zIndex = 20 - absDistance;
+
+            if (distance === 0) {
+                 // Center card
+                card.style.transform = 'scale(1.05) translateZ(30px)';
+                card.style.opacity = '1';
+                card.style.zIndex = '20';
+            } else {
+                 // Side cards
+                card.style.transform = `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
+                card.style.opacity = opacity;
+                card.style.zIndex = zIndex;
+            }
+        });
     }
-    
-    card.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease';
-  });
-}
 
-generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-showTypingIndicator() {
-  const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-  const typingIndicator = this.createElement('div', {
-    className: 'chat-widget-message assistant typing-indicator',
-    innerHTML: '<span></span><span></span><span></span>'
-  });
-  messagesContainer.appendChild(typingIndicator);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-hideTypingIndicator() {
-  const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
-  if (typingIndicator) {
-    typingIndicator.remove();
-  }
-}
-
-applyTheme() {
-  document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
-}
-
-saveState() {
-  sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
-}
-
-loadState(config) {
-  const savedState = sessionStorage.getItem(SESSION_STATE_KEY);
-  if (savedState) {
-    return JSON.parse(savedState);
-  }
-
-  return {
-    sessionId: this.generateUUID(),
-    isOpen: false,
-    history: [{ sender: 'assistant', text: config.welcomeMessage }]
-  };
-}
-
-restoreUIState() {
-  if (this.state.isOpen) {
-    this.elements.panel.classList.add('open');
-    this.elements.button.classList.add('open');
-  }
-
-  const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-destroy() {
-  if (this.elements.button) this.elements.button.remove();
-  if (this.elements.panel) this.elements.panel.remove();
-}
-
-}
-
-window.ChatWidget = {
-  init: (config) => {
-    if (window.chatWidgetInstance) {
-      window.chatWidgetInstance.destroy();
-      window.chatWidgetInstance = null;
+    generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
     }
-    window.chatWidgetInstance = new ChatWidget(config);
-    return window.chatWidgetInstance.init();
-  }
-};
+
+    showTypingIndicator() {
+      const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
+      const typingIndicator = this.createElement('div', {
+        className: 'chat-widget-message assistant typing-indicator',
+        innerHTML: '<span></span><span></span><span></span>'
+      });
+      messagesContainer.appendChild(typingIndicator);
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    hideTypingIndicator() {
+      const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
+      if (typingIndicator) {
+        typingIndicator.remove();
+      }
+    }
+
+    applyTheme() {
+      document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
+    }
+
+    saveState() {
+      sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
+    }
+
+    loadState(config) {
+      const savedState = sessionStorage.getItem(SESSION_STATE_KEY);
+      if (savedState) {
+        return JSON.parse(savedState);
+      }
+
+      return {
+        sessionId: this.generateUUID(),
+        isOpen: false,
+        history: [{ sender: 'assistant', text: config.welcomeMessage }]
+      };
+    }
+
+    restoreUIState() {
+      if (this.state.isOpen) {
+        this.elements.panel.classList.add('open');
+        this.elements.button.classList.add('open');
+      }
+
+      const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    destroy() {
+      if (this.elements.button) this.elements.button.remove();
+      if (this.elements.panel) this.elements.panel.remove();
+    }
+
+    }
+
+    window.ChatWidget = {
+    init: (config) => {
+      if (window.chatWidgetInstance) {
+        window.chatWidgetInstance.destroy();
+        window.chatWidgetInstance = null;
+      }
+      window.chatWidgetInstance = new ChatWidget(config);
+      return window.chatWidgetInstance.init();
+    }
+    };
 
 })(window);
