@@ -1,8 +1,6 @@
 (function(window) {
     'use strict';
-
     const SESSION_STATE_KEY = 'chat_widget_session_state';
-
     class ChatWidget {
         constructor(config) {
             this.config = Object.assign({
@@ -19,7 +17,6 @@
             this.state = this.loadState(this.config); 
             this.isThinking = false;
         }
-
         init() {
             if (document.querySelector('.chat-widget-button')) {
                 console.warn("Chat Widget is already initialized.");
@@ -41,20 +38,17 @@
             this.restoreUIState();
             return this;
         }
-
         createElements() {
             this.elements.button = this.createElement('button', {
                 className: 'chat-widget-button',
                 ariaLabel: 'Toggle Chat Window',
                 innerHTML: `<svg class="chat-widget-button-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"></path></svg>`
             });
-
             this.elements.panel = this.createElement('div', { className: 'chat-widget-panel' });
             
             const header = this.createHeader();
             const messagesContainer = this.createMessagesContainer();
             const inputArea = this.createInputArea();
-
             this.elements.panel.appendChild(header);
             this.elements.panel.appendChild(messagesContainer);
             this.elements.panel.appendChild(inputArea);
@@ -78,7 +72,6 @@
             header.appendChild(closeBtn);
             return header;
         }
-
         createMessagesContainer() {
             const messagesContainer = this.createElement('div', { className: 'chat-widget-messages' });
             this.state.history.forEach(msg => {
@@ -95,31 +88,26 @@
             inputArea.appendChild(sendButton);
             return inputArea;
         }
-
         createElement(tag, props) {
             const el = document.createElement(tag);
             Object.keys(props).forEach(key => el[key] = props[key]);
             return el;
         }
-
         attachEventListeners() {
             this.elements.button.addEventListener('click', () => this.toggle());
             this.elements.panel.querySelector('.chat-widget-close-btn').addEventListener('click', () => this.close());
             
             const input = this.elements.panel.querySelector('input');
             const sendButton = this.elements.panel.querySelector('.chat-widget-input-area button');
-
             sendButton.addEventListener('click', () => this.handleSendMessage());
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') this.handleSendMessage();
             });
         }
-
         handleSendMessage() {
             const input = this.elements.panel.querySelector('input');
             const text = input.value;
             if (!text.trim() || this.isThinking) return;
-
             this.addMessage('user', text);
             input.value = '';
             
@@ -152,7 +140,6 @@
                 this.hideTypingIndicator();
             }
         }
-
         extractReply(data) {
             if (Array.isArray(data) && data[0]) { 
                 const item = data[0]; 
@@ -170,14 +157,12 @@
         toggle() {
             this.state.isOpen ? this.close() : this.open();
         }
-
         open() {
             this.elements.panel.classList.add('open');
             this.elements.button.classList.add('open');
             this.state.isOpen = true;
             this.saveState();
         }
-
         close() {
             this.elements.panel.classList.remove('open');
             this.elements.button.classList.remove('open');
@@ -197,7 +182,6 @@
                 this.saveState();
             }
         }
-
         // Modified to handle PRODUCTS_JSON format
         addMessageToUI(sender, text, container) {
             if (sender === 'assistant') {
@@ -206,12 +190,10 @@
                 if (products.length > 0) {
                     // Extract text that is NOT part of the PRODUCTS_JSON
                     const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
-
                     if (mainText) {
                         const textEl = this.createMessageElement(sender, mainText);
                         container.appendChild(textEl);
                     }
-
                     const carouselEl = this.createCarouselElement(products);
                     container.appendChild(carouselEl);
                 } else {
@@ -248,7 +230,6 @@
             
             return products;
         }
-
         createMessageElement(sender, text) {
             const msgDiv = this.createElement('div', { className: `chat-widget-message ${sender}` });
             const p = this.createElement('p', { textContent: text });
@@ -293,12 +274,10 @@
                     });
                     cardLink.appendChild(price);
                 }
-
                 carousel.appendChild(cardLink);
             });
-
             container.appendChild(carousel);
-
+            
             // Initialize carousel position to show center item
             setTimeout(() => {
                 const cardWidth = 200; // card width + gap
@@ -306,12 +285,12 @@
                 carousel.scrollLeft = centerIndex * cardWidth;
                 this.updateCarouselOpacity(carousel);
             }, 100);
-
+            
             // Add scroll event listener for opacity updates
             carousel.addEventListener('scroll', () => {
                 this.updateCarouselOpacity(carousel);
             });
-
+            
             // Add navigation arrows
             if (products.length > 1) {
                 const prevButton = this.createElement('button', { 
@@ -327,56 +306,62 @@
                 
                 container.appendChild(prevButton);
                 container.appendChild(nextButton);
-
+                
                 const cardWidth = 200;
                 const originalLength = products.length;
-
+                
                 prevButton.addEventListener('click', () => {
                     const currentScroll = carousel.scrollLeft;
                     
                     // Disable smooth scrolling temporarily for instant jump
                     carousel.style.scrollBehavior = 'auto';
                     
+                    // Calculate the current index based on scroll position
+                    const currentIndex = Math.round(currentScroll / cardWidth);
+                    
                     // Handle infinite scroll - jump to end if at beginning
-                    if (currentScroll <= cardWidth) {
-                        carousel.scrollLeft = (originalLength * 2) * cardWidth;
+                    if (currentIndex <= originalLength) {
+                        carousel.scrollLeft = (originalLength * 2 - 1) * cardWidth;
+                    } else {
+                        carousel.scrollLeft = currentScroll - cardWidth;
                     }
                     
-                    // Re-enable smooth scrolling and move
+                    // Re-enable smooth scrolling for future transitions
                     setTimeout(() => {
                         carousel.style.scrollBehavior = 'smooth';
-                        carousel.scrollLeft = carousel.scrollLeft - cardWidth;
                     }, 10);
                 });
-
+                
                 nextButton.addEventListener('click', () => {
                     const currentScroll = carousel.scrollLeft;
-                    const maxScroll = (originalLength * 2) * cardWidth;
                     
                     // Disable smooth scrolling temporarily for instant jump
                     carousel.style.scrollBehavior = 'auto';
                     
+                    // Calculate the current index based on scroll position
+                    const currentIndex = Math.round(currentScroll / cardWidth);
+                    
                     // Handle infinite scroll - jump to beginning if at end
-                    if (currentScroll >= maxScroll - cardWidth) {
+                    if (currentIndex >= originalLength * 2 - 1) {
                         carousel.scrollLeft = originalLength * cardWidth;
+                    } else {
+                        carousel.scrollLeft = currentScroll + cardWidth;
                     }
                     
-                    // Re-enable smooth scrolling and move
+                    // Re-enable smooth scrolling for future transitions
                     setTimeout(() => {
                         carousel.style.scrollBehavior = 'smooth';
-                        carousel.scrollLeft = carousel.scrollLeft + cardWidth;
                     }, 10);
                 });
             }
-
             return container;
         }
-
+        
         updateCarouselOpacity(carousel) {
             const cards = carousel.querySelectorAll('.product-card');
             const containerRect = carousel.getBoundingClientRect();
             const containerCenter = containerRect.left + containerRect.width / 2;
-
+            
             cards.forEach(card => {
                 const cardRect = card.getBoundingClientRect();
                 const cardCenter = cardRect.left + cardRect.width / 2;
@@ -384,35 +369,38 @@
                 
                 // Calculate opacity and scale based on distance from center
                 const maxDistance = 200; // Adjust this value to control the effect range
-                let opacity, scale;
+                let opacity, scale, zIndex;
                 
                 if (distance < 50) {
-                    // Center card - full opacity and slight scale
+                    // Center card - full opacity, slight scale, and highest z-index
                     opacity = 1;
                     scale = 1.05;
-                } else if (distance < maxDistance) {
-                    // Side cards - reduced opacity, normal scale
-                    opacity = Math.max(0.3, 1 - (distance / maxDistance));
+                    zIndex = 3;
+                } else if (distance < 150) {
+                    // Side cards - reduced opacity, normal scale, medium z-index
+                    opacity = Math.max(0.6, 1 - (distance / maxDistance));
                     scale = 1;
+                    zIndex = 2;
                 } else {
-                    // Far cards - minimal opacity
+                    // Far cards - minimal opacity, lowest z-index
                     opacity = 0.3;
-                    scale = 1;
+                    scale = 0.95;
+                    zIndex = 1;
                 }
                 
                 card.style.opacity = opacity;
                 card.style.transform = `scale(${scale})`;
+                card.style.zIndex = zIndex;
                 card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             });
         }
-
+        
         generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { 
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); 
                 return v.toString(16); 
             });
         }
-
         showTypingIndicator() {
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
             const typingIndicator = this.createElement('div', { 
@@ -437,7 +425,6 @@
         saveState() {
             sessionStorage.setItem(SESSION_STATE_KEY, JSON.stringify(this.state));
         }
-
         loadState(config) {
             const savedState = sessionStorage.getItem(SESSION_STATE_KEY);
             if (savedState) {
@@ -458,13 +445,11 @@
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-
         destroy() {
             if (this.elements.button) this.elements.button.remove();
             if (this.elements.panel) this.elements.panel.remove();
         }
     }
-
     window.ChatWidget = {
         init: (config) => {
             if (window.chatWidgetInstance) {
@@ -475,6 +460,4 @@
             return window.chatWidgetInstance.init();
         }
     };
-
 })(window);
-
