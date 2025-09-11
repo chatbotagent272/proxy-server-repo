@@ -1,12 +1,15 @@
 import express from 'express';
 import cors from 'cors';
-import crypto from 'crypto'; // Import the crypto module to generate IDs
+import crypto from 'crypto';
 
 const app = express();
 
 // Middleware to handle JSON and CORS
 app.use(express.json());
 app.use(cors());
+
+// Serve static files from public directory
+app.use(express.static('public'));
 
 // The API endpoint the chatbot widget will call
 app.post('/api/chat', async (req, res) => {
@@ -31,6 +34,7 @@ app.post('/api/chat', async (req, res) => {
     // Clean up top-level sessionId to avoid redundancy
     delete payload.sessionId;
 
+    console.log('Sending request to n8n with payload:', JSON.stringify(payload));
 
     // This block correctly prepares and sends the request to n8n
     const response = await fetch(n8nWebhookUrl, {
@@ -55,11 +59,13 @@ app.post('/api/chat', async (req, res) => {
 
     // If n8n returns an empty response, send back an empty object.
     if (!responseText) {
+      console.log('Empty response from n8n, returning empty object');
       return res.status(200).json({});
     }
 
     // This block handles the successful response from n8n
     const responseData = JSON.parse(responseText);
+    console.log('Returning response from n8n:', JSON.stringify(responseData));
     res.status(200).json(responseData);
 
   } catch (error) {
@@ -68,6 +74,11 @@ app.post('/api/chat', async (req, res) => {
         res.status(500).json({ error: 'An error occurred while proxying the request.' });
     }
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
 // Export the app for Vercel
