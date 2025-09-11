@@ -441,18 +441,24 @@
         const absDistance = Math.abs(distance);
 
         if (distance === 0) {
-          card.style.transform = 'translateZ(0px) scale(1)';
+          card.style.transform = 'translateX(0px) translateZ(50px) rotateY(0deg) scale(1.1)';
       card.style.opacity = '1';
-      card.style.zIndex = '10';
-    } else {
-      // Side cards
+      card.style.zIndex = '20';
+    } else if (absDistance === 1) {
+      // Immediate side cards - semi-visible with rotation
       const side = Math.sign(distance);
-      card.style.transform = `translateX(${side * 55 * absDistance}px) translateZ(-${80 * absDistance}px) rotateY(${side * 30}deg) scale(${1 - (absDistance * 0.15)})`;
-      card.style.opacity = `${Math.max(0.4, 1 - absDistance * 0.3)}`;
-      card.style.zIndex = `${10 - absDistance}`;
+      card.style.transform = `translateX(${side * 60}px) translateZ(-50px) rotateY(${side * 40}deg) scale(0.85)`;
+      card.style.opacity = '0.8';
+      card.style.zIndex = '15';
+    } else {
+      // Distant cards - more rotated and faded
+      const side = Math.sign(distance);
+      card.style.transform = `translateX(${side * 80 * absDistance}px) translateZ(-${100 * absDistance}px) rotateY(${side * 50}deg) scale(${Math.max(0.6, 0.9 - (absDistance * 0.2))})`;
+      card.style.opacity = `${Math.max(0.3, 0.8 - (absDistance * 0.3))}`;
+      card.style.zIndex = `${15 - absDistance}`;
     }
 
-    card.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
+    card.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.4s ease';
   });
 }
 
