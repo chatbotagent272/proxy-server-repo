@@ -39,6 +39,7 @@
             
             this.applyTheme();
             this.restoreUIState();
+            this.injectStyles();
             return this;
         }
 
@@ -154,9 +155,16 @@
         }
 
         extractReply(data) {
-            if (Array.isArray(data) && data[0]) { const item = data[0]; return item.content || item.message || item.text || "Sorry, I couldn't understand the response."; }
-            if (typeof data === 'object' && data !== null) { return data.content || data.message || data.text || "Sorry, I couldn't understand the response."; }
-            if (typeof data === 'string') { return data; }
+            if (Array.isArray(data) && data[0]) { 
+                const item = data[0]; 
+                return item.content || item.message || item.text || "Sorry, I couldn't understand the response."; 
+            }
+            if (typeof data === 'object' && data !== null) { 
+                return data.content || data.message || data.text || "Sorry, I couldn't understand the response."; 
+            }
+            if (typeof data === 'string') { 
+                return data; 
+            }
             return "Sorry, I received an unhandled response format.";
         }
         
@@ -191,14 +199,14 @@
             }
         }
 
-        // --- MODIFIED: This function now handles both text and carousels from Markdown ---
+        // Modified to handle PRODUCTS_JSON format
         addMessageToUI(sender, text, container) {
             if (sender === 'assistant') {
-                const products = this.parseProductsFromMarkdown(text);
+                const products = this.parseProductsFromText(text);
                 
                 if (products.length > 0) {
-                    // Extract text that is NOT part of the product list
-                    const mainText = text.replace(/- Paveikslėlis:\s*!\[.*?\]\((https?:\/\/[^\)]+)\)/g, '').trim();
+                    // Extract text that is NOT part of the PRODUCTS_JSON
+                    const mainText = text.replace(/PRODUCTS_JSON:\s*\[.*?\]/s, '').trim();
 
                     if (mainText) {
                         const textEl = this.createMessageElement(sender, mainText);
@@ -219,22 +227,26 @@
             }
         }
         
-        // --- NEW: This function parses product data from a Markdown string ---
-        parseProductsFromMarkdown(text) {
+        // Parse PRODUCTS_JSON from text
+        parseProductsFromText(text) {
             const products = [];
-            // Regex to find all product image lines
-            const productBlockRegex = /- Paveikslėlis:\s*!\[(.*?)\]\((https?:\/\/[^\)]+)\)/g;
-
-            let match;
-            while ((match = productBlockRegex.exec(text)) !== null) {
-                products.push({
-                    title: match[1].trim() || 'Produktas', // Use alt text as title, or a default
-                    price: '', // No price info in new format
-                    url: match[2].trim(), // No product URL, link to image instead
-                    image_url: match[2].trim(),
-                    currency: ''
-                });
+            const match = text.match(/PRODUCTS_JSON:\s*(\[.*?\])/s);
+            
+            if (match) {
+                try {
+                    const productsData = JSON.parse(match[1]);
+                    return productsData.map(product => ({
+                        title: product.title || 'Product',
+                        price: product.price || '',
+                        currency: product.currency || '',
+                        url: product.url || '#',
+                        image_url: product.image_url || ''
+                    }));
+                } catch (error) {
+                    console.error('Error parsing PRODUCTS_JSON:', error);
+                }
             }
+            
             return products;
         }
 
@@ -249,7 +261,10 @@
             const container = this.createElement('div', { className: 'product-carousel-container' });
             const carousel = this.createElement('div', { className: 'product-carousel' });
             
-            products.forEach(product => {
+            // Create duplicate products for infinite scroll effect
+            const allProducts = [...products, ...products, ...products];
+            
+            allProducts.forEach((product, index) => {
                 const cardLink = this.createElement('a', { 
                     href: product.url,
                     className: 'product-card',
@@ -257,71 +272,271 @@
                     rel: 'noopener noreferrer'
                 });
                 
-                const img = this.createElement('img', { src: product.image_url, alt: product.title });
+                const img = this.createElement('img', { 
+                    src: product.image_url, 
+                    alt: product.title,
+                    loading: 'lazy'
+                });
                 const title = this.createElement('h4', { textContent: product.title });
                 
-                // Only add price if it exists
+                cardLink.appendChild(img);
+                cardLink.appendChild(title);
+                
                 if (product.price) {
-                    const price = this.createElement('p', { textContent: `${product.price}${product.currency}` });
+                    const price = this.createElement('p', { 
+                        className: 'product-price',
+                        textContent: `${product.price} ${product.currency}` 
+                    });
                     cardLink.appendChild(price);
                 }
 
-
-                cardLink.appendChild(img);
-                cardLink.appendChild(title);
                 carousel.appendChild(cardLink);
             });
 
             container.appendChild(carousel);
 
-            if (products.length > 1) { // Only add arrows if there's more than one product
-                const prevButton = this.createElement('button', { className: 'carousel-arrow prev', innerHTML: '&#10094;' });
-                const nextButton = this.createElement('button', { className: 'carousel-arrow next', innerHTML: '&#10095;' });
+            // Initialize carousel position to show center item
+            setTimeout(() => {
+                const cardWidth = 200; // card width + gap
+                const centerIndex = products.length; // Start at the first duplicate set
+                carousel.scrollLeft = centerIndex * cardWidth;
+                this.updateCarouselOpacity(carousel);
+            }, 100);
+
+            // Add scroll event listener for opacity updates
+            carousel.addEventListener('scroll', () => {
+                this.updateCarouselOpacity(carousel);
+            });
+
+            // Add navigation arrows
+            if (products.length > 1) {
+                const prevButton = this.createElement('button', { 
+                    className: 'carousel-arrow prev', 
+                    innerHTML: '&#10094;',
+                    ariaLabel: 'Previous product'
+                });
+                const nextButton = this.createElement('button', { 
+                    className: 'carousel-arrow next', 
+                    innerHTML: '&#10095;',
+                    ariaLabel: 'Next product'
+                });
+                
                 container.appendChild(prevButton);
                 container.appendChild(nextButton);
 
-                const scrollAmount = 160; // card width + gap
+                const cardWidth = 200;
+                const originalLength = products.length;
 
                 prevButton.addEventListener('click', () => {
-                    const newScrollLeft = carousel.scrollLeft - scrollAmount;
-                    if (newScrollLeft < 0) {
-                        carousel.scrollLeft = carousel.scrollWidth - carousel.clientWidth; // Loop to end
-                    } else {
-                        carousel.scrollLeft = newScrollLeft;
-                    }
+                    const currentScroll = carousel.scrollLeft;
+                    const newScroll = currentScroll - cardWidth;
+                    
+                    carousel.scrollTo({
+                        left: newScroll,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Handle infinite scroll
+                    setTimeout(() => {
+                        if (carousel.scrollLeft <= 0) {
+                            carousel.scrollLeft = originalLength * cardWidth;
+                        }
+                    }, 300);
                 });
 
                 nextButton.addEventListener('click', () => {
-                    const newScrollLeft = carousel.scrollLeft + scrollAmount;
-                    if (newScrollLeft >= carousel.scrollWidth - carousel.clientWidth) {
-                        carousel.scrollLeft = 0; // Loop to start
-                    } else {
-                        carousel.scrollLeft = newScrollLeft;
-                    }
+                    const currentScroll = carousel.scrollLeft;
+                    const newScroll = currentScroll + cardWidth;
+                    
+                    carousel.scrollTo({
+                        left: newScroll,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Handle infinite scroll
+                    setTimeout(() => {
+                        const maxScroll = (originalLength * 2) * cardWidth;
+                        if (carousel.scrollLeft >= maxScroll) {
+                            carousel.scrollLeft = originalLength * cardWidth;
+                        }
+                    }, 300);
                 });
             }
 
             return container;
         }
 
+        updateCarouselOpacity(carousel) {
+            const cards = carousel.querySelectorAll('.product-card');
+            const containerRect = carousel.getBoundingClientRect();
+            const containerCenter = containerRect.left + containerRect.width / 2;
+
+            cards.forEach(card => {
+                const cardRect = card.getBoundingClientRect();
+                const cardCenter = cardRect.left + cardRect.width / 2;
+                const distance = Math.abs(containerCenter - cardCenter);
+                
+                // Calculate opacity based on distance from center
+                const maxDistance = containerRect.width / 2;
+                const opacity = Math.max(0.3, 1 - (distance / maxDistance));
+                
+                card.style.opacity = opacity;
+                
+                // Add scale effect for center item
+                const scale = distance < 50 ? 1.05 : 1;
+                card.style.transform = `scale(${scale})`;
+            });
+        }
+
         generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); });
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { 
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); 
+                return v.toString(16); 
+            });
         }
 
         showTypingIndicator() {
             const messagesContainer = this.elements.panel.querySelector('.chat-widget-messages');
-            const typingIndicator = this.createElement('div', { className: 'chat-widget-message assistant typing-indicator', innerHTML: '<span></span><span></span><span></span>' });
+            const typingIndicator = this.createElement('div', { 
+                className: 'chat-widget-message assistant typing-indicator', 
+                innerHTML: '<span></span><span></span><span></span>' 
+            });
             messagesContainer.appendChild(typingIndicator);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
         hideTypingIndicator() {
             const typingIndicator = this.elements.panel.querySelector('.typing-indicator');
-            if (typingIndicator) { typingIndicator.remove(); }
+            if (typingIndicator) { 
+                typingIndicator.remove(); 
+            }
         }
         
         applyTheme() {
             document.documentElement.style.setProperty('--chat-widget-primary-color', this.config.primaryColor);
+        }
+
+        injectStyles() {
+            if (document.getElementById('chat-widget-carousel-styles')) return;
+            
+            const style = document.createElement('style');
+            style.id = 'chat-widget-carousel-styles';
+            style.textContent = `
+                .product-carousel-container {
+                    position: relative;
+                    margin: 15px 0;
+                    padding: 0 30px;
+                }
+
+                .product-carousel {
+                    display: flex;
+                    gap: 20px;
+                    overflow-x: auto;
+                    scroll-behavior: smooth;
+                    scrollbar-width: none;
+                    -ms-overflow-style: none;
+                    padding: 10px 0;
+                }
+
+                .product-carousel::-webkit-scrollbar {
+                    display: none;
+                }
+
+                .product-card {
+                    flex: 0 0 180px;
+                    background: #fff;
+                    border-radius: 12px;
+                    padding: 15px;
+                    text-decoration: none;
+                    color: inherit;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    transition: all 0.3s ease;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    text-align: center;
+                }
+
+                .product-card:hover {
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+                    transform: translateY(-2px) !important;
+                }
+
+                .product-card img {
+                    width: 100%;
+                    height: 120px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    margin-bottom: 10px;
+                }
+
+                .product-card h4 {
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin: 0 0 8px 0;
+                    line-height: 1.3;
+                    display: -webkit-box;
+                    -webkit-line-clamp: 2;
+                    -webkit-box-orient: vertical;
+                    overflow: hidden;
+                }
+
+                .product-card .product-price {
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: var(--chat-widget-primary-color, #5B8DEF);
+                    margin: 0;
+                }
+
+                .carousel-arrow {
+                    position: absolute;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: rgba(255,255,255,0.9);
+                    border: 1px solid #ddd;
+                    border-radius: 50%;
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    font-size: 18px;
+                    color: #333;
+                    z-index: 10;
+                    transition: all 0.2s ease;
+                }
+
+                .carousel-arrow:hover {
+                    background: #fff;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                }
+
+                .carousel-arrow.prev {
+                    left: 0;
+                }
+
+                .carousel-arrow.next {
+                    right: 0;
+                }
+
+                @media (max-width: 480px) {
+                    .product-carousel-container {
+                        padding: 0 25px;
+                    }
+                    
+                    .product-card {
+                        flex: 0 0 160px;
+                    }
+                    
+                    .carousel-arrow {
+                        width: 35px;
+                        height: 35px;
+                        font-size: 16px;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
         }
         
         saveState() {
@@ -352,6 +567,8 @@
         destroy() {
             if (this.elements.button) this.elements.button.remove();
             if (this.elements.panel) this.elements.panel.remove();
+            const styles = document.getElementById('chat-widget-carousel-styles');
+            if (styles) styles.remove();
         }
     }
 
