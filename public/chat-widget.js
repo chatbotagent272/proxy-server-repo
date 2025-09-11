@@ -378,7 +378,7 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const stepWidth = cardWidth * 0.6; // How much to move for each step (for overlap)
+        const stepWidth = cardWidth * 0.55; // REFINED: Tighter step for better centering and overlap
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
@@ -401,7 +401,7 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const stepWidth = cardWidth * 0.6; // How much to move for each step (for overlap)
+        const stepWidth = cardWidth * 0.55; // REFINED: Tighter step for better centering and overlap
 
         currentIndex += direction;
         
@@ -464,9 +464,9 @@
                 transform = `translateZ(40px) rotateY(0deg) scale(1.1)`;
             } else if (absDistance < 3) {
                 // Visible side cards
-                const zTranslate = -25 * absDistance; // Depth control
-                const yRotate = -45 * side; // Angle control
-                const scale = 1 - (absDistance * 0.1);
+                const zTranslate = -30 * absDistance; // REFINED: Less depth for a tighter feel
+                const yRotate = -50 * side; // REFINED: Slightly more angle
+                const scale = 1 - (absDistance * 0.15); // REFINED: Larger side cards
                 
                 transform = `translateZ(${zTranslate}px) rotateY(${yRotate}deg) scale(${scale})`;
             } else {
@@ -555,3 +555,8 @@
     };
 
 })(window);
+
+
+
+
+
