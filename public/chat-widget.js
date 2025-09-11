@@ -288,16 +288,23 @@
             const container = this.createElement('div', { className: 'product-carousel-container' });
             const carousel = this.createElement('div', { className: 'product-carousel' });
             
-            // Create duplicate products for infinite scroll effect
-            const allProducts = [...products, ...products, ...products];
+            // For a good coverflow effect, we need at least 3 items. Duplicate if necessary.
+            let displayProducts = [...products];
+            while (displayProducts.length > 0 && displayProducts.length < 3) {
+                displayProducts = [...displayProducts, ...products];
+            }
+            const productCount = displayProducts.length;
+            if (productCount === 0) return container;
+        
+            // Create three sets of products for a seamless infinite loop
+            const allProducts = [...displayProducts, ...displayProducts, ...displayProducts];
             
-            allProducts.forEach((product, index) => {
+            allProducts.forEach(product => {
                 const cardLink = this.createElement('a', { 
                     href: product.url,
                     className: 'product-card',
                     target: '_blank',
-                    rel: 'noopener noreferrer',
-                    'data-index': index % products.length // Store original index
+                    rel: 'noopener noreferrer'
                 });
                 
                 const img = this.createElement('img', { 
@@ -311,7 +318,6 @@
                     textContent: product.title 
                 });
                 
-                // Add elements in correct order: image, title, price
                 cardLink.appendChild(img);
                 cardLink.appendChild(title);
                 
@@ -326,12 +332,17 @@
             });
             container.appendChild(carousel);
             
-            // Initialize carousel position to show center item
+            // Attach state variables to the DOM element
+            carousel.dataset.currentIndex = productCount;
+            carousel.dataset.productCount = productCount;
+            carousel.dataset.isTransitioning = 'false';
+            
+            // Initialize carousel position after elements are rendered
             setTimeout(() => {
-                this.setupCoverflow(carousel, products.length);
+                this.setupCarousel(carousel);
             }, 100);
             
-            // Add navigation arrows
+            // Add navigation arrows if there's more than one unique product
             if (products.length > 1) {
                 const prevButton = this.createElement('button', { 
                     className: 'carousel-arrow prev', 
@@ -347,123 +358,94 @@
                 container.appendChild(prevButton);
                 container.appendChild(nextButton);
                 
-                const originalLength = products.length;
-                
-                prevButton.addEventListener('click', () => {
-                    this.navigateCarousel(carousel, -1, originalLength);
-                });
-                
-                nextButton.addEventListener('click', () => {
-                    this.navigateCarousel(carousel, 1, originalLength);
-                });
+                prevButton.addEventListener('click', () => this.navigateCarousel(carousel, -1));
+                nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
             }
             return container;
         }
         
-        setupCoverflow(carousel, productCount) {
-            const cards = carousel.querySelectorAll('.product-card');
-            const cardWidth = 180; // Match CSS width
-            const gap = 20; // Match CSS gap
+        setupCarousel(carousel) {
+            const cardWidth = 180; // Must match CSS
+            const gap = 20; // Must match CSS
             const totalCardWidth = cardWidth + gap;
+            const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
+        
+            // Set carousel width
+            carousel.style.width = `${carousel.children.length * totalCardWidth}px`;
             
-            // Set carousel width to accommodate all cards
-            carousel.style.width = `${cards.length * totalCardWidth}px`;
-            
-            // Position the first product in the center
+            // Position the carousel to show the first item of the middle block
             const containerWidth = carousel.parentElement.offsetWidth;
             const centerOffset = (containerWidth - cardWidth) / 2;
-            carousel.style.transform = `translateX(${centerOffset}px)`;
+            const initialX = centerOffset - (initialIndex * totalCardWidth);
+            carousel.style.transform = `translateX(${initialX}px)`;
             
-            // Apply initial coverflow styling
-            this.updateCoverflowEffect(carousel, 0);
+            // Apply initial coverflow effect
+            this.updateCoverflowEffect(carousel, initialIndex);
         }
         
-        navigateCarousel(carousel, direction, productCount) {
-            const cards = carousel.querySelectorAll('.product-card');
-            if (cards.length === 0) return;
-            
-            // Get current position
-            const transform = window.getComputedStyle(carousel).transform;
-            const matrix = new DOMMatrix(transform);
-            const currentX = matrix.m41; // Extract X translation
-            
-            const cardWidth = 180; // Match CSS width
-            const gap = 20; // Match CSS gap
+        navigateCarousel(carousel, direction) {
+            if (carousel.dataset.isTransitioning === 'true') return;
+            carousel.dataset.isTransitioning = 'true';
+        
+            let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
+            const productCount = parseInt(carousel.dataset.productCount, 10);
+            const cardWidth = 180;
+            const gap = 20;
             const totalCardWidth = cardWidth + gap;
-            
-            // Calculate new position
-            const newX = currentX - (direction * totalCardWidth);
-            
-            // Apply new position with transition
-            carousel.style.transition = 'transform 0.3s ease';
+        
+            currentIndex += direction;
+            carousel.dataset.currentIndex = currentIndex;
+        
+            // Move carousel with transition
+            carousel.style.transition = 'transform 0.4s ease';
+            const containerWidth = carousel.parentElement.offsetWidth;
+            const centerOffset = (containerWidth - cardWidth) / 2;
+            const newX = centerOffset - (currentIndex * totalCardWidth);
             carousel.style.transform = `translateX(${newX}px)`;
-            
-            // Update coverflow effect
-            const currentIndex = Math.round((currentX - (carousel.parentElement.offsetWidth - cardWidth) / 2) / -totalCardWidth);
-            this.updateCoverflowEffect(carousel, currentIndex + direction);
-            
-            // Handle infinite scroll
-            setTimeout(() => {
-                // Check if we need to reset position for infinite effect
-                const currentTransform = window.getComputedStyle(carousel).transform;
-                const currentMatrix = new DOMMatrix(currentTransform);
-                const currentPosX = currentMatrix.m41;
-                
-                // If we've moved too far in either direction, reset position
-                const maxOffset = productCount * totalCardWidth;
-                if (Math.abs(currentPosX) > maxOffset) {
-                    carousel.style.transition = 'none';
-                    carousel.style.transform = `translateX(${currentPosX > 0 ? currentPosX - maxOffset : currentPosX + maxOffset}px)`;
-                    
-                    // Restore transition after reset
-                    setTimeout(() => {
-                        carousel.style.transition = 'transform 0.3s ease';
-                    }, 50);
+        
+            this.updateCoverflowEffect(carousel, currentIndex);
+        
+            // Use transitionend to handle the infinite scroll "jump"
+            carousel.addEventListener('transitionend', () => {
+                let needsReset = false;
+                if (currentIndex >= productCount * 2) { // Reached end of middle block
+                    currentIndex -= productCount;
+                    needsReset = true;
+                } else if (currentIndex < productCount) { // Reached start of middle block
+                    currentIndex += productCount;
+                    needsReset = true;
                 }
-            }, 350);
+        
+                if (needsReset) {
+                    carousel.style.transition = 'none';
+                    const resetX = centerOffset - (currentIndex * totalCardWidth);
+                    carousel.style.transform = `translateX(${resetX}px)`;
+                    carousel.dataset.currentIndex = currentIndex;
+                }
+        
+                carousel.dataset.isTransitioning = 'false';
+            }, { once: true }); // Listener fires only once per navigation
         }
         
         updateCoverflowEffect(carousel, centerIndex) {
             const cards = carousel.querySelectorAll('.product-card');
-            const containerWidth = carousel.parentElement.offsetWidth;
-            const centerOffset = (containerWidth - 180) / 2; // 180 is card width from CSS
-            
             cards.forEach((card, index) => {
-                // Calculate distance from center
-                const distance = Math.abs(index - centerIndex);
-                
-                // Reset all transforms first
-                card.style.transform = '';
-                card.style.opacity = '';
-                card.style.zIndex = '';
-                
+                const distance = index - centerIndex;
+                const absDistance = Math.abs(distance);
+        
                 if (distance === 0) {
                     // Center card
-                    card.style.transform = 'translateZ(0) scale(1)';
+                    card.style.transform = 'translateZ(0px) scale(1)';
                     card.style.opacity = '1';
                     card.style.zIndex = '10';
-                } else if (distance === 1) {
-                    // Adjacent cards
-                    const side = index < centerIndex ? -1 : 1;
-                    card.style.transform = `translateX(${side * 70}px) translateZ(-100px) scale(0.85) rotateY(${side * 25}deg)`;
-                    card.style.opacity = '0.8';
-                    card.style.zIndex = '8';
-                } else if (distance === 2) {
-                    // Further cards
-                    const side = index < centerIndex ? -1 : 1;
-                    card.style.transform = `translateX(${side * 120}px) translateZ(-200px) scale(0.7) rotateY(${side * 35}deg)`;
-                    card.style.opacity = '0.5';
-                    card.style.zIndex = '6';
                 } else {
-                    // Far cards - mostly hidden
-                    const side = index < centerIndex ? -1 : 1;
-                    card.style.transform = `translateX(${side * 150}px) translateZ(-300px) scale(0.6) rotateY(${side * 40}deg)`;
-                    card.style.opacity = '0.3';
-                    card.style.zIndex = '4';
+                    // Side cards
+                    const side = Math.sign(distance);
+                    card.style.transform = `translateX(${side * 55 * absDistance}px) translateZ(-${80 * absDistance}px) rotateY(${side * 30}deg) scale(${1 - (absDistance * 0.15)})`;
+                    card.style.opacity = `${Math.max(0.4, 1 - absDistance * 0.3)}`;
+                    card.style.zIndex = `${10 - absDistance}`;
                 }
-                
-                // Add transition for smooth changes
-                card.style.transition = 'transform 0.3s ease, opacity 0.3s ease, z-index 0.3s ease';
+                card.style.transition = 'transform 0.4s ease, opacity 0.4s ease';
             });
         }
         
