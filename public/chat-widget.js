@@ -378,12 +378,12 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const totalCardWidth = cardWidth * 0.7; // Adjusted for overlap
+        const stepWidth = cardWidth * 0.6; // How much to move for each step (for overlap)
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
         const centerOffset = (containerWidth / 2) - (cardWidth / 2);
-        const initialX = centerOffset - (initialIndex * totalCardWidth);
+        const initialX = centerOffset - (initialIndex * stepWidth);
         
         carousel.style.transition = 'none';
         carousel.style.transform = `translateX(${initialX}px)`;
@@ -401,23 +401,24 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const totalCardWidth = cardWidth * 0.7; // Adjusted for overlap
+        const stepWidth = cardWidth * 0.6;
 
         currentIndex += direction;
-        carousel.dataset.currentIndex = currentIndex;
         
         carousel.style.transition = 'transform 0.4s ease';
         const containerWidth = carousel.parentElement.offsetWidth;
         const centerOffset = (containerWidth / 2) - (cardWidth / 2);
-        const newX = centerOffset - (currentIndex * totalCardWidth);
+        const newX = centerOffset - (currentIndex * stepWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
         this.updateCoverflowEffect(carousel, currentIndex);
         
         const handleTransitionEnd = () => {
             carousel.removeEventListener('transitionend', handleTransitionEnd);
+            carousel.dataset.currentIndex = currentIndex;
+
             let needsReset = false;
-            if (currentIndex <= productCount - 1) {
+            if (currentIndex < productCount) {
                 currentIndex += productCount;
                 needsReset = true;
             } else if (currentIndex >= productCount * 2) {
@@ -428,13 +429,15 @@
             if (needsReset) {
                 carousel.style.transition = 'none';
                 carousel.dataset.currentIndex = currentIndex;
-                const resetX = centerOffset - (currentIndex * totalCardWidth);
+                const resetX = centerOffset - (currentIndex * stepWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
+                
+                // We need to re-apply the effect after the silent jump
                 this.updateCoverflowEffect(carousel, currentIndex);
                 
-                setTimeout(() => {
-                    carousel.style.transition = 'transform 0.4s ease';
-                }, 20);
+                // Force a browser repaint before re-enabling transitions
+                void carousel.offsetWidth; 
+                carousel.style.transition = 'transform 0.4s ease';
             }
             carousel.dataset.isTransitioning = 'false';
         };
@@ -444,29 +447,34 @@
 
     updateCoverflowEffect(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
+        const cardWidth = 140;
+
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
             const absDistance = Math.abs(distance);
             const side = Math.sign(distance);
 
             let transform = '';
-            let opacity = '0';
-            let zIndex = '0';
+            let opacity = '0.4';
+            let zIndex = `${10 - absDistance}`;
 
-            if (absDistance <= 1) { // Show center and immediate neighbors
+            if (distance === 0) {
+                // Center card
                 opacity = '1';
-                zIndex = `${20 - absDistance}`;
+                zIndex = '20';
+                transform = `translateZ(40px) rotateY(0deg) scale(1.05)`;
+            } else if (absDistance < 3) {
+                // Visible side cards
+                const xTranslate = side * (cardWidth * 0.4); // Overlap control
+                const zTranslate = -30 * absDistance; // Depth control
+                const yRotate = -45 * side; // Angle control
+                const scale = 1 - (absDistance * 0.1);
                 
-                const scale = distance === 0 ? 1.05 : 0.9;
-                const rotateY = distance === 0 ? 0 : -50 * side;
-                const translateX = distance === 0 ? 0 : 60 * side;
-                const translateZ = distance === 0 ? 50 : -20;
-                
-                transform = `translateX(${translateX}%) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
+                transform = `translateX(${xTranslate}px) translateZ(${zTranslate}px) rotateY(${yRotate}deg) scale(${scale})`;
             } else {
-                 // Hide cards that are further away
-                 opacity = '0';
-                 transform = `scale(0.8)`;
+                // Far-away cards (make them invisible but keep in DOM)
+                opacity = '0';
+                transform = `scale(0.8)`;
             }
 
             card.style.transform = transform;
