@@ -369,7 +369,6 @@
             nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
         }
 
-        // Use a timeout to ensure the container has been rendered and has a width
         setTimeout(() => {
             this.setupCarousel(carousel);
         }, 0);
@@ -379,19 +378,18 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const totalCardWidth = cardWidth; 
+        const cardGap = 10; // Add a gap between cards
+        const totalCardWidth = cardWidth + cardGap; 
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
         const centerOffset = (containerWidth / 2) - (cardWidth / 2);
         const initialX = centerOffset - (initialIndex * totalCardWidth);
         
-        // Apply initial position without transition
         carousel.style.transition = 'none';
         carousel.style.transform = `translateX(${initialX}px)`;
-        this.updateCoverflowEffect(carousel, initialIndex);
+        this.updateCarouselStyles(carousel, initialIndex);
 
-        // Re-enable transitions after a short delay
         setTimeout(() => {
             carousel.style.transition = 'transform 0.4s ease';
         }, 50);
@@ -404,7 +402,8 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const totalCardWidth = cardWidth;
+        const cardGap = 10;
+        const totalCardWidth = cardWidth + cardGap;
 
         currentIndex += direction;
         carousel.dataset.currentIndex = currentIndex;
@@ -415,7 +414,7 @@
         const newX = centerOffset - (currentIndex * totalCardWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
-        this.updateCoverflowEffect(carousel, currentIndex);
+        this.updateCarouselStyles(carousel, currentIndex);
         
         const handleTransitionEnd = () => {
             carousel.removeEventListener('transitionend', handleTransitionEnd);
@@ -433,9 +432,8 @@
                 carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * totalCardWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
-                this.updateCoverflowEffect(carousel, currentIndex);
+                this.updateCarouselStyles(carousel, currentIndex);
                 
-                // Force a browser repaint before re-enabling transitions
                 void carousel.offsetWidth;
                 carousel.style.transition = 'transform 0.4s ease';
             }
@@ -445,38 +443,24 @@
         carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    updateCoverflowEffect(carousel, centerIndex) {
+    // **REPLACED updateCoverflowEffect with a simplified version**
+    updateCarouselStyles(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
-        const cardWidth = 140; 
-
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
-            const absDistance = Math.abs(distance);
-            const side = Math.sign(distance);
-
-            let translateX, translateZ, rotateY, scale, opacity, zIndex;
+            
+            // Reset any complex transforms from previous attempts
+            card.style.transform = '';
 
             if (distance === 0) {
-                // Center card
-                translateX = 0;
-                translateZ = 40; // Bring it forward
-                rotateY = 0;
-                scale = 1.05;    // Make it slightly larger
-                opacity = 1;
-                zIndex = 20;
+                // Center card: slightly larger and fully visible
+                card.style.opacity = '1';
+                card.style.transform = 'scale(1.05)';
             } else {
-                // Side cards
-                translateX = side * (cardWidth * 0.6); // Overlap by translating 60% of width
-                translateZ = -absDistance * 70;      // Push back further
-                rotateY = side * -60;                // More aggressive angle
-                scale = Math.max(0, 1 - (absDistance * 0.15));
-                opacity = Math.max(0, 1 - (absDistance * 0.25));
-                zIndex = 20 - absDistance;
+                // Side cards: normal size and slightly faded
+                card.style.opacity = '0.7';
+                card.style.transform = 'scale(1)';
             }
-
-            card.style.transform = `translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`;
-            card.style.opacity = opacity;
-            card.style.zIndex = zIndex;
         });
     }
 
