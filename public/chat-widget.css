@@ -323,15 +323,16 @@
 
 .product-carousel-container {
   position: relative;
-  margin: 10px -15px; /* Extend to edges */
+  margin: 10px -15px;
   padding: 10px 0;
-  width: calc(100% + 30px); /* Fill extended space */
+  width: calc(100% + 30px);
   flex-shrink: 0;
-  height: 200px;
+  height: 220px; /* Increased height for 3D effect */
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden; /* Hide the parts of the strip that are off-screen */
+  overflow: hidden;
+  perspective: 1000px; /* Enables 3D space */
 }
 
 .product-carousel {
@@ -339,7 +340,7 @@
   align-items: center;
   position: absolute;
   left: 0;
-  /* transition is handled by JS for the strip */
+  transform-style: preserve-d; /* Allows children to be in 3D */
 }
 
 .product-card {
@@ -357,17 +358,18 @@
   text-align: center;
   border: 1px solid #e2e8f0;
   min-height: 180px;
-  margin-right: 10px; /* A visible gap between cards */
   will-change: transform, opacity;
-  transition: transform 0.4s ease, opacity 0.4s ease; /* Card-specific transitions */
+  transition: transform 0.4s ease, opacity 0.4s ease;
+  backface-visibility: hidden; /* Prevents flickering during rotation */
 }
 
 
 .product-card:hover {
   box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
   border-color: var(--chat-widget-primary-color);
-  z-index: 25 !important; /* Bring to front on hover */
-  transform: scale(1.1) !important; /* Keep hover effect consistent */
+  z-index: 25 !important;
+  /* Hover transform should respect its 3D position */
+  transform: var(--transform, 'scale(1.0)') scale(1.05) !important;
 }
 
 .product-card img {
