@@ -377,17 +377,13 @@
     }
 
     setupCarousel(carousel) {
-        const cardWidth = 140; // from CSS
-        const stepWidth = 100; // Overlap cards by setting this less than cardWidth
+        carousel.dataset.cardWidth = 140; // from CSS
+        carousel.dataset.stepWidth = 100; // Overlap cards by setting this less than cardWidth
+
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
-        const containerWidth = carousel.parentElement.offsetWidth;
-        const centerOffset = (containerWidth - cardWidth) / 2;
-        const initialX = centerOffset - (initialIndex * stepWidth);
-        
         carousel.style.transition = 'none';
-        carousel.style.transform = `translateX(${initialX}px)`;
-        this.updateCarouselStyles(carousel, initialIndex);
+        this.positionCarousel(carousel, initialIndex, false);
 
         setTimeout(() => {
             carousel.style.transition = 'transform 0.4s ease';
@@ -399,25 +395,16 @@
         carousel.dataset.isTransitioning = 'true';
 
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
-        const productCount = parseInt(carousel.dataset.productCount, 10);
-        const cardWidth = 140;
-        const stepWidth = 100; // Must match setupCarousel
-
         currentIndex += direction;
-        carousel.dataset.currentIndex = currentIndex; // Update state immediately
         
-        carousel.style.transition = 'transform 0.4s ease';
-        const containerWidth = carousel.parentElement.offsetWidth;
-        const centerOffset = (containerWidth - cardWidth) / 2;
-        const newX = centerOffset - (currentIndex * stepWidth);
-        carousel.style.transform = `translateX(${newX}px)`;
-
-        this.updateCarouselStyles(carousel, currentIndex);
+        this.positionCarousel(carousel, currentIndex, true);
         
         const handleTransitionEnd = () => {
             carousel.removeEventListener('transitionend', handleTransitionEnd);
             
+            const productCount = parseInt(carousel.dataset.productCount, 10);
             let needsReset = false;
+            
             if (currentIndex < productCount) {
                 currentIndex += productCount;
                 needsReset = true;
@@ -427,25 +414,40 @@
             }
 
             if (needsReset) {
-                const cards = carousel.querySelectorAll('.product-card');
-                cards.forEach(card => card.style.transition = 'none');
-
-                carousel.style.transition = 'none';
-                carousel.dataset.currentIndex = currentIndex;
-                const resetX = centerOffset - (currentIndex * stepWidth);
-                carousel.style.transform = `translateX(${resetX}px)`;
-                this.updateCarouselStyles(carousel, currentIndex);
-                
-                setTimeout(() => {
-                    cards.forEach(card => card.style.transition = ''); 
-                    carousel.dataset.isTransitioning = 'false';
-                }, 20);
-            } else {
-                carousel.dataset.isTransitioning = 'false';
+                this.positionCarousel(carousel, currentIndex, false);
             }
+            
+            // Use a short timeout to ensure the browser has rendered the reset before re-enabling transitions and accepting input
+            setTimeout(() => {
+                carousel.dataset.isTransitioning = 'false';
+            }, 50);
         };
 
         carousel.addEventListener('transitionend', handleTransitionEnd);
+    }
+
+    positionCarousel(carousel, index, isAnimated) {
+        carousel.dataset.currentIndex = index;
+
+        const cardWidth = parseInt(carousel.dataset.cardWidth, 10);
+        const stepWidth = parseInt(carousel.dataset.stepWidth, 10);
+        const containerWidth = carousel.parentElement.offsetWidth;
+        
+        const centerOffset = (containerWidth - cardWidth) / 2;
+        const newX = centerOffset - (index * stepWidth);
+
+        if (!isAnimated) {
+            carousel.style.transition = 'none';
+        }
+
+        carousel.style.transform = `translateX(${newX}px)`;
+        this.updateCarouselStyles(carousel, index);
+
+        if (!isAnimated) {
+            // Force browser repaint before re-enabling transitions
+            void carousel.offsetWidth; 
+            carousel.style.transition = 'transform 0.4s ease';
+        }
     }
 
     updateCarouselStyles(carousel, centerIndex) {
@@ -454,18 +456,25 @@
             const distance = index - centerIndex;
             const absDistance = Math.abs(distance);
             
+            // Z-index should be highest at the center and decrease outwards
+            const zIndex = 20 - absDistance;
+            
+            let transformString = '';
             if (distance === 0) {
                 // Center card: flat, forward, and larger
-                card.style.transform = 'rotateY(0deg) translateZ(50px) scale(1.05)';
-                card.style.opacity = '1';
-                card.style.zIndex = '20';
+                transformString = 'rotateY(0deg) translateZ(50px) scale(1.05)';
             } else {
                 // Side cards: angled, pushed back, and smaller
                 const side = Math.sign(distance);
-                card.style.transform = `rotateY(${side * 45}deg) translateZ(-50px) scale(0.8)`;
-                card.style.opacity = '0.6';
-                card.style.zIndex = `${10 - absDistance}`;
+                const rotation = side * 50; // Angle of side cards
+                const zTranslation = -80; // How far back side cards are
+                const scale = 0.8;
+                transformString = `rotateY(${rotation}deg) translateZ(${zTranslation}px) scale(${scale})`;
             }
+
+            card.style.transform = transformString;
+            card.style.opacity = absDistance > 2 ? '0' : '1'; // Hide cards that are far away
+            card.style.zIndex = zIndex;
         });
     }
 
@@ -543,3 +552,4 @@
     };
 
 })(window);
+
