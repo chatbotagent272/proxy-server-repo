@@ -406,6 +406,7 @@
         const stepWidth = cardWidth + cardGap;
 
         currentIndex += direction;
+        carousel.dataset.currentIndex = currentIndex; // Update state immediately
         
         carousel.style.transition = 'transform 0.4s ease';
         const containerWidth = carousel.parentElement.offsetWidth;
@@ -433,15 +434,16 @@
                 const resetX = centerOffset - (currentIndex * stepWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
                 this.updateCarouselStyles(carousel, currentIndex);
-                void carousel.offsetWidth; 
+                void carousel.offsetWidth; // Force browser repaint
             }
+            
+            // Re-enable clicking after transition/reset is complete
             carousel.dataset.isTransitioning = 'false';
         };
 
         carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    // REVERTED to a simple 2D style
     updateCarouselStyles(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
         cards.forEach((card, index) => {
