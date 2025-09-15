@@ -324,7 +324,7 @@
   /* ========== OPTIMIZED LAYOUT PRODUCT CAROUSEL ========== */
   .product-carousel-container {
   position: relative;
-  margin: 8px auto 4px auto;
+  margin: 2px auto 4px auto;
   padding: 0;
   width: 100%;
   height: 260px; /* INCREASED from 250px to 260px for better proportions */
