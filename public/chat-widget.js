@@ -378,7 +378,8 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const stepWidth = cardWidth * 0.65; // FINAL VALUE: Correct step for precise centering
+        const cardGap = 10; // A visible gap between cards
+        const stepWidth = cardWidth + cardGap;
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
@@ -387,7 +388,7 @@
         
         carousel.style.transition = 'none';
         carousel.style.transform = `translateX(${initialX}px)`;
-        this.updateCoverflowEffect(carousel, initialIndex);
+        this.updateCarouselStyles(carousel, initialIndex);
 
         setTimeout(() => {
             carousel.style.transition = 'transform 0.4s ease';
@@ -401,7 +402,8 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const stepWidth = cardWidth * 0.65; // FINAL VALUE: Correct step for precise centering
+        const cardGap = 10;
+        const stepWidth = cardWidth + cardGap;
 
         currentIndex += direction;
         
@@ -411,12 +413,11 @@
         const newX = centerOffset - (currentIndex * stepWidth);
         carousel.style.transform = `translateX(${newX}px)`;
 
-        this.updateCoverflowEffect(carousel, currentIndex);
+        this.updateCarouselStyles(carousel, currentIndex);
         
         const handleTransitionEnd = () => {
             carousel.removeEventListener('transitionend', handleTransitionEnd);
-            carousel.dataset.currentIndex = currentIndex;
-
+            
             let needsReset = false;
             if (currentIndex < productCount) {
                 currentIndex += productCount;
@@ -431,13 +432,8 @@
                 carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * stepWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
-                
-                // We need to re-apply the effect after the silent jump
-                this.updateCoverflowEffect(carousel, currentIndex);
-                
-                // Force a browser repaint before re-enabling transitions
+                this.updateCarouselStyles(carousel, currentIndex);
                 void carousel.offsetWidth; 
-                carousel.style.transition = 'transform 0.4s ease';
             }
             carousel.dataset.isTransitioning = 'false';
         };
@@ -445,39 +441,23 @@
         carousel.addEventListener('transitionend', handleTransitionEnd);
     }
 
-    updateCoverflowEffect(carousel, centerIndex) {
+    // REVERTED to a simple 2D style
+    updateCarouselStyles(carousel, centerIndex) {
         const cards = carousel.querySelectorAll('.product-card');
-
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
-            const absDistance = Math.abs(distance);
-            const side = Math.sign(distance);
-
-            let transform = '';
-            let opacity = '0.5';
-            let zIndex = `${10 - absDistance}`;
-
+            
             if (distance === 0) {
                 // Center card
-                opacity = '1';
-                zIndex = '20';
-                transform = `translateZ(40px) rotateY(0deg) scale(1.1)`;
-            } else if (absDistance < 3) {
-                // Visible side cards
-                const zTranslate = -20 * absDistance; // FINAL VALUE: Less depth
-                const yRotate = -55 * side; // FINAL VALUE: More angle
-                const scale = 1 - (absDistance * 0.1); // FINAL VALUE: Larger side cards
-                
-                transform = `translateZ(${zTranslate}px) rotateY(${yRotate}deg) scale(${scale})`;
+                card.style.transform = 'scale(1.05)';
+                card.style.opacity = '1';
+                card.style.zIndex = '20';
             } else {
-                // Far-away cards (make them invisible but keep in DOM)
-                opacity = '0';
-                transform = `scale(0.8)`;
+                // Side cards
+                card.style.transform = 'scale(1)';
+                card.style.opacity = '0.7';
+                card.style.zIndex = '10';
             }
-
-            card.style.transform = transform;
-            card.style.opacity = opacity;
-            card.style.zIndex = zIndex;
         });
     }
 
@@ -555,3 +535,4 @@
     };
 
 })(window);
+
