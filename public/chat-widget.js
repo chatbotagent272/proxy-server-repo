@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating properly spaced coverflow carousel with products:', products);
+console.log('Creating large-scale coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -508,7 +508,7 @@ cardLink.appendChild(img);
 
 cardLink.appendChild(title);
 
-// Enhanced price container with horizontal layout
+// SMART price container with optimized horizontal layout
 
 const priceContainer = this.createElement('div', { className: 'product-price-container' });
 
@@ -518,15 +518,19 @@ if (product.currentPrice) {
 
 if (isDiscounted) {
 
-// Horizontal layout: current | original
+// OPTIMIZED horizontal layout: Remove duplicate EUR, show currency only once
 
-const priceText = `${product.currentPrice} ${product.currency} | ${product.originalPrice} ${product.currency}`;
+const currentValue = product.currentPrice;
+
+const originalValue = product.originalPrice;
+
+const currency = product.currency;
 
 const priceEl = this.createElement('p', {
 
 className: 'product-price-horizontal',
 
-innerHTML: `${product.currentPrice} ${product.currency} | <span class="original-price-inline">${product.originalPrice} ${product.currency}</span>`
+innerHTML: `${currentValue} | <span class="original-price-inline">${originalValue}</span> ${currency}`
 
 });
 
@@ -622,7 +626,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up properly spaced 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up large-scale 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -730,11 +734,11 @@ const cards = carousel.querySelectorAll('.product-card');
 
 const containerWidth = carousel.parentElement.offsetWidth;
 
-const cardWidth = 170; // Updated for larger cards
+const cardWidth = 200; // INCREASED to 200px for larger cards
 
 const centerX = containerWidth / 2;
 
-console.log('Updating properly spaced 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating large-scale 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -770,7 +774,7 @@ zIndex = 30;
 
 // Adjacent cards - left and right neighbors
 
-const offset = distance > 0 ? 115 : -115; // Adjusted spacing for larger cards
+const offset = distance > 0 ? 130 : -130; // INCREASED spacing for larger cards
 
 translateX = centerX - (cardWidth / 2) + offset;
 
@@ -850,9 +854,9 @@ const baseScale = parseFloat(card.dataset.baseScale) || 1;
 
 if (isHovering) {
 
-// REDUCED hover state: maintain exact position, smaller scale increase
+// Hover state: maintain exact position, small scale increase
 
-const hoverScale = baseScale * 1.04; // REDUCED from 1.08 to 1.04 (4% instead of 8%)
+const hoverScale = baseScale * 1.04; // 4% growth - prevents overlap
 
 const hoverTransform = `translateX(${baseTranslateX}px) translateY(${baseTranslateY}%) scale(${hoverScale})`;
 
