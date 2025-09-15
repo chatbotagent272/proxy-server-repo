@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating large-scale coverflow carousel with products:', products);
+console.log('Creating refined coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -508,7 +508,7 @@ cardLink.appendChild(img);
 
 cardLink.appendChild(title);
 
-// SMART price container with optimized horizontal layout
+// Smart price container with optimized horizontal layout and proper spacing
 
 const priceContainer = this.createElement('div', { className: 'product-price-container' });
 
@@ -518,7 +518,7 @@ if (product.currentPrice) {
 
 if (isDiscounted) {
 
-// OPTIMIZED horizontal layout: Remove duplicate EUR, show currency only once
+// Optimized horizontal layout: Remove duplicate EUR, show currency only once
 
 const currentValue = product.currentPrice;
 
@@ -556,7 +556,7 @@ priceContainer.appendChild(currentPriceEl);
 
 cardLink.appendChild(priceContainer);
 
-// Add hover event listeners for stable, reduced hover effect
+// Add hover event listeners for center-card-only hover effect
 
 cardLink.addEventListener('mouseenter', () => this.handleCardHover(cardLink, true));
 
@@ -626,7 +626,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up large-scale 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up refined 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -734,11 +734,11 @@ const cards = carousel.querySelectorAll('.product-card');
 
 const containerWidth = carousel.parentElement.offsetWidth;
 
-const cardWidth = 200; // INCREASED to 200px for larger cards
+const cardWidth = 200; // Large cards
 
 const centerX = containerWidth / 2;
 
-console.log('Updating large-scale 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating refined 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -774,7 +774,7 @@ zIndex = 30;
 
 // Adjacent cards - left and right neighbors
 
-const offset = distance > 0 ? 130 : -130; // INCREASED spacing for larger cards
+const offset = distance > 0 ? 130 : -130; // Spacing for larger cards
 
 translateX = centerX - (cardWidth / 2) + offset;
 
@@ -820,6 +820,8 @@ card.dataset.baseScale = scale;
 
 card.dataset.baseOpacity = opacity;
 
+card.dataset.cardDistance = distance; // IMPORTANT: Store distance for hover logic
+
 // Enable/disable interactions based on visibility
 
 if (opacity > 0) {
@@ -842,9 +844,15 @@ card.classList.add('hidden-card');
 
 handleCardHover(card, isHovering) {
 
-// Only apply hover effects to visible cards
+// CRITICAL FIX: Only apply hover effects to CENTER CARD (distance === 0)
 
 if (card.classList.contains('hidden-card')) return;
+
+const cardDistance = parseInt(card.dataset.cardDistance) || 0;
+
+// ONLY allow hover on center card (distance === 0), block side cards
+
+if (cardDistance !== 0) return;
 
 const baseTranslateX = parseFloat(card.dataset.baseTranslateX) || 0;
 
