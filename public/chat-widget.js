@@ -429,16 +429,25 @@
             }
 
             if (needsReset) {
+                // Temporarily disable transitions on cards to prevent flicker during reset
+                const cards = carousel.querySelectorAll('.product-card');
+                cards.forEach(card => card.style.transition = 'none');
+
                 carousel.style.transition = 'none';
                 carousel.dataset.currentIndex = currentIndex;
                 const resetX = centerOffset - (currentIndex * stepWidth);
                 carousel.style.transform = `translateX(${resetX}px)`;
                 this.updateCarouselStyles(carousel, currentIndex);
-                void carousel.offsetWidth; // Force browser repaint
+                
+                // Use a minimal timeout to allow the browser to apply the reset position
+                // without animation, then re-enable transitions for the next move.
+                setTimeout(() => {
+                    cards.forEach(card => card.style.transition = ''); // Reset to stylesheet rule
+                    carousel.dataset.isTransitioning = 'false';
+                }, 20);
+            } else {
+                carousel.dataset.isTransitioning = 'false';
             }
-            
-            // Re-enable clicking after transition/reset is complete
-            carousel.dataset.isTransitioning = 'false';
         };
 
         carousel.addEventListener('transitionend', handleTransitionEnd);
