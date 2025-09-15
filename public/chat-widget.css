@@ -327,12 +327,12 @@
   padding: 10px 0;
   width: calc(100% + 30px);
   flex-shrink: 0;
-  height: 220px; /* Increased height for 3D effect */
+  height: 220px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  perspective: 1000px; /* Enables 3D space */
+  perspective: 1000px;
 }
 
 .product-carousel {
@@ -340,7 +340,8 @@
   align-items: center;
   position: absolute;
   left: 0;
-  transform-style: preserve-d; /* Allows children to be in 3D */
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease;
 }
 
 .product-card {
@@ -360,16 +361,13 @@
   min-height: 180px;
   will-change: transform, opacity;
   transition: transform 0.4s ease, opacity 0.4s ease;
-  backface-visibility: hidden; /* Prevents flickering during rotation */
+  backface-visibility: hidden;
 }
 
 
 .product-card:hover {
   box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
   border-color: var(--chat-widget-primary-color);
-  z-index: 25 !important;
-  /* Hover transform should respect its 3D position */
-  transform: var(--transform, 'scale(1.0)') scale(1.05) !important;
 }
 
 .product-card img {
