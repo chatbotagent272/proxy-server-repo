@@ -834,20 +834,19 @@ card.dataset.baseOpacity = opacity;
 
 card.dataset.isCenterCard = isCenterCard; // CRITICAL: Mark center card
 
-// Enable/disable interactions based on visibility
-
-if (opacity > 0) {
-
-card.style.pointerEvents = 'auto';
-
-card.classList.remove('hidden-card');
-
+// Enable/disable interactions based on position
+if (isCenterCard) {
+    // Only the center card should be interactive
+    card.style.pointerEvents = 'auto';
+    card.classList.remove('hidden-card');
 } else {
-
-card.style.pointerEvents = 'none';
-
-card.classList.add('hidden-card');
-
+    // Side cards are visible but not interactive
+    card.style.pointerEvents = 'none';
+    if (opacity > 0) {
+        card.classList.remove('hidden-card');
+    } else {
+        card.classList.add('hidden-card');
+    }
 }
 
 });
@@ -1031,3 +1030,4 @@ return window.chatWidgetInstance.init();
 };
 
 })(window);
+
