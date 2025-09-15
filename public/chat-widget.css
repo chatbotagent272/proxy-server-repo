@@ -319,13 +319,13 @@ height: 20px;
 color: white;
 }
 
-/* ========== REFINED LARGE-SCALE PRODUCT CAROUSEL ========== */
+/* ========== COMPACT PRODUCT CAROUSEL WITH CORRECT SPACING ========== */
 .product-carousel-container {
 position: relative;
 margin: 8px auto 15px auto;
 padding: 0;
 width: 100%;
-height: 270px;
+height: 250px; /* REDUCED from 270px to 250px (-20px) to match shorter cards */
 display: flex;
 align-items: center;
 justify-content: center;
@@ -348,10 +348,10 @@ top: 50%;
 left: 0;
 transform-origin: center center;
 width: 200px;
-height: 240px;
+height: 220px; /* REDUCED from 240px to 220px (-20px) for more compact look */
 background: #fff;
 border-radius: 12px;
-padding: 16px;
+padding: 16px 16px 18px 16px; /* ADDED padding-bottom: 18px for price spacing */
 text-decoration: none;
 color: inherit;
 box-shadow: 0 6px 25px rgba(0,0,0,0.12);
@@ -372,7 +372,7 @@ transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
 box-shadow: 0 12px 35px rgba(0,0,0,0.2) !important;
 border-color: var(--chat-widget-primary-color) !important;
 z-index: 150 !important;
-/* Transform is handled by JavaScript with center-card restriction */
+/* Transform is handled by JavaScript with bulletproof center-card restriction */
 }
 
 .product-card.hidden-card {
@@ -383,10 +383,10 @@ pointer-events: none !important;
 .product-card img {
 width: 100%;
 height: 120px;
-/* SMART IMAGE HANDLING: Use contain for better fit with vertical images */
+/* Smart image handling: Use contain for better fit with vertical images */
 object-fit: contain;
 object-position: center;
-background: #f8f9fa; /* Light background for contain gaps */
+background: #f8f9fa;
 border-radius: 8px;
 margin-bottom: 12px;
 flex-shrink: 0;
@@ -394,7 +394,7 @@ display: block;
 }
 
 .product-card .product-title {
-font-size: 12px; /* REDUCED from 14px to 12px for better fit */
+font-size: 12px;
 font-weight: 600;
 margin: 0 0 12px 0;
 line-height: 1.3;
@@ -414,7 +414,8 @@ flex-direction: column;
 align-items: center;
 justify-content: center;
 gap: 4px;
-margin-top: 8px; /* ADDED spacing from card bottom edge */
+margin-top: auto; /* REMOVED margin-top: 8px that pushed price down */
+/* Price positioning now handled by card padding-bottom */
 }
 
 /* Standard vertical price layout for single prices */
@@ -514,15 +515,15 @@ height: 24px;
 }
 
 .product-carousel-container {
-height: 250px;
+height: 230px; /* REDUCED from 250px to 230px for mobile */
 margin: 6px auto 12px auto;
 padding: 0;
 }
 
 .product-card {
 width: 170px;
-height: 210px;
-padding: 14px;
+height: 195px; /* REDUCED from 210px to 195px (-15px) for compact mobile */
+padding: 14px 14px 16px 14px; /* Adjusted mobile padding with bottom spacing */
 }
 
 .product-card img {
@@ -533,7 +534,7 @@ background: #f8f9fa;
 }
 
 .product-card .product-title {
-font-size: 11px; /* REDUCED from 13px to 11px for mobile */
+font-size: 11px;
 min-height: 50px;
 -webkit-line-clamp: 3;
 }
@@ -555,7 +556,7 @@ font-size: 12px;
 }
 
 .product-price-container {
-margin-top: 6px; /* Proportional mobile spacing */
+/* No additional margin on mobile - spacing handled by card padding */
 }
 
 .carousel-arrow {
@@ -641,7 +642,7 @@ border-color: #4b5563;
 }
 
 .product-card img {
-background: #4b5563; /* Dark mode image background */
+background: #4b5563;
 }
 
 .product-card .product-title {
