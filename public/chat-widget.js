@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating carousel element with products:', products);
+console.log('Creating 2D coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -460,7 +460,7 @@ const productCount = products.length;
 
 if (productCount === 0) return container;
 
-// Triple the products for seamless infinite scrolling
+// Create seamless infinite scroll by tripling products
 
 const allProducts = [...products, ...products, ...products];
 
@@ -478,9 +478,7 @@ rel: 'noopener noreferrer'
 
 });
 
-// Store original transform for hover state
-
-cardLink.dataset.originalIndex = index;
+cardLink.dataset.index = index;
 
 const img = this.createElement('img', {
 
@@ -550,15 +548,15 @@ carousel.appendChild(cardLink);
 
 container.appendChild(carousel);
 
-// Initialize carousel state
+// Initialize carousel state - start at middle set for seamless infinite scroll
 
-carousel.dataset.currentIndex = productCount; // Start at the middle set (first product centered)
+carousel.dataset.currentIndex = productCount; // Start at first product of middle set
 
 carousel.dataset.productCount = productCount;
 
 carousel.dataset.isTransitioning = 'false';
 
-// Add navigation arrows only if there's more than one product
+// Add navigation arrows if more than one product
 
 if (products.length > 1) {
 
@@ -596,7 +594,7 @@ nextButton.addEventListener('click', () => this.navigateCarousel(carousel, 1));
 
 setTimeout(() => {
 
-this.setupCarousel(carousel);
+this.setup2DCarousel(carousel);
 
 }, 0);
 
@@ -604,43 +602,15 @@ return container;
 
 }
 
-setupCarousel(carousel) {
-
-const cards = carousel.querySelectorAll('.product-card');
-
-const productCount = parseInt(carousel.dataset.productCount, 10);
+setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-const containerWidth = carousel.parentElement.offsetWidth;
+console.log('Setting up 2D carousel with currentIndex:', currentIndex);
 
-// Calculate proper centering
+// Apply 2D coverflow transforms to all cards
 
-const cardWidth = 140;
-
-const cardSpacing = 20; // Space between card centers
-
-const totalWidth = cards.length * cardSpacing;
-
-const startX = (containerWidth / 2) - (currentIndex * cardSpacing);
-
-// Position carousel without transition for initial setup
-
-carousel.style.transition = 'none';
-
-carousel.style.transform = `translateX(${startX}px)`;
-
-// Set initial 3D positions for all cards
-
-this.updateCarouselStyles(carousel, currentIndex);
-
-// Re-enable transitions after initial positioning
-
-setTimeout(() => {
-
-carousel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-
-}, 50);
+this.update2DCarouselStyles(carousel, currentIndex);
 
 }
 
@@ -654,43 +624,31 @@ let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
 const productCount = parseInt(carousel.dataset.productCount, 10);
 
-const containerWidth = carousel.parentElement.offsetWidth;
-
-const cardSpacing = 20;
-
 // Update index
 
 currentIndex += direction;
 
 carousel.dataset.currentIndex = currentIndex;
 
-// Calculate new position
+console.log('Navigating to index:', currentIndex, 'direction:', direction);
 
-const newX = (containerWidth / 2) - (currentIndex * cardSpacing);
+// Apply new 2D transforms
 
-carousel.style.transform = `translateX(${newX}px)`;
+this.update2DCarouselStyles(carousel, currentIndex);
 
-// Update 3D styling for new center card
+// Handle infinite scroll reset after transition completes
 
-this.updateCarouselStyles(carousel, currentIndex);
-
-// Handle infinite scroll reset after transition
-
-const handleTransitionEnd = () => {
-
-carousel.removeEventListener('transitionend', handleTransitionEnd);
-
-carousel.dataset.isTransitioning = 'false';
-
-// Reset position if we've gone too far in either direction
+setTimeout(() => {
 
 let needsReset = false;
 
 let newIndex = currentIndex;
 
+// Check if we need to reset position for seamless infinite scroll
+
 if (currentIndex < productCount) {
 
-// Went before first set, jump to last set
+// Before first set - jump to equivalent position in last set
 
 newIndex = currentIndex + productCount;
 
@@ -698,7 +656,7 @@ needsReset = true;
 
 } else if (currentIndex >= productCount * 2) {
 
-// Went past last set, jump to first set  
+// After last set - jump to equivalent position in first set
 
 newIndex = currentIndex - productCount;
 
@@ -708,37 +666,59 @@ needsReset = true;
 
 if (needsReset) {
 
-// Disable transitions temporarily
+console.log('Resetting carousel from index', currentIndex, 'to', newIndex);
 
-carousel.style.transition = 'none';
+// Temporarily disable transitions
+
+const cards = carousel.querySelectorAll('.product-card');
+
+cards.forEach(card => {
+
+card.style.transition = 'none';
+
+});
+
+// Update index and immediately apply transforms
 
 carousel.dataset.currentIndex = newIndex;
 
-const resetX = (containerWidth / 2) - (newIndex * cardSpacing);
+this.update2DCarouselStyles(carousel, newIndex);
 
-carousel.style.transform = `translateX(${resetX}px)`;
-
-this.updateCarouselStyles(carousel, newIndex);
-
-// Re-enable transitions
+// Re-enable transitions after reset
 
 setTimeout(() => {
 
-carousel.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+cards.forEach(card => {
+
+card.style.transition = '';
+
+});
+
+carousel.dataset.isTransitioning = 'false';
 
 }, 20);
 
-}
+} else {
 
-};
-
-carousel.addEventListener('transitionend', handleTransitionEnd, { once: true });
+carousel.dataset.isTransitioning = 'false';
 
 }
 
-updateCarouselStyles(carousel, centerIndex) {
+}, 400); // Match transition duration
+
+}
+
+update2DCarouselStyles(carousel, centerIndex) {
 
 const cards = carousel.querySelectorAll('.product-card');
+
+const containerWidth = carousel.parentElement.offsetWidth;
+
+const cardWidth = 140;
+
+const centerX = containerWidth / 2;
+
+console.log('Updating 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -746,73 +726,87 @@ const distance = index - centerIndex;
 
 const absDistance = Math.abs(distance);
 
-// Store the 3D transform separately from positioning
+// Calculate 2D position and styling based on distance from center
 
-let transform3D = '';
+let translateX = 0;
 
-let opacity = '1';
+let scale = 1;
 
-let zIndex = '10';
+let opacity = 1;
+
+let zIndex = 10;
 
 if (distance === 0) {
 
-// Center card: flat, forward, larger
+// Center card
 
-transform3D = 'rotateY(0deg) translateZ(50px) scale(1.08)';
+translateX = centerX - (cardWidth / 2);
 
-opacity = '1';
+scale = 1.1;
 
-zIndex = '30';
+opacity = 1;
+
+zIndex = 30;
 
 } else if (absDistance === 1) {
 
-// Adjacent cards: slightly angled
+// Adjacent cards
 
-const side = Math.sign(distance);
+const offset = distance > 0 ? 80 : -80; // Right or left of center
 
-transform3D = `rotateY(${side * 25}deg) translateZ(20px) scale(0.95)`;
+translateX = centerX - (cardWidth / 2) + offset;
 
-opacity = '0.8';
+scale = 0.9;
 
-zIndex = '20';
+opacity = 0.8;
+
+zIndex = 20;
 
 } else if (absDistance === 2) {
 
-// Second-level cards: more angled
+// Second level cards
 
-const side = Math.sign(distance);
+const offset = distance > 0 ? 140 : -140;
 
-transform3D = `rotateY(${side * 45}deg) translateZ(-20px) scale(0.85)`;
+translateX = centerX - (cardWidth / 2) + offset;
 
-opacity = '0.6';
+scale = 0.75;
 
-zIndex = '15';
+opacity = 0.6;
+
+zIndex = 15;
 
 } else {
 
-// Far cards: heavily angled and small
+// Distant cards
 
-const side = Math.sign(distance);
+const offset = distance > 0 ? 200 : -200;
 
-transform3D = `rotateY(${side * 60}deg) translateZ(-50px) scale(0.7)`;
+translateX = centerX - (cardWidth / 2) + offset;
 
-opacity = '0.4';
+scale = 0.6;
 
-zIndex = '10';
+opacity = 0.3;
+
+zIndex = 10;
 
 }
 
-// Apply the 3D transform
+// Apply 2D transforms
 
-card.style.transform = transform3D;
+const transform = `translateX(${translateX}px) scale(${scale})`;
+
+card.style.transform = transform;
 
 card.style.opacity = opacity;
 
 card.style.zIndex = zIndex;
 
-// Store transform for hover state
+// Store base transform for hover enhancement
 
-card.dataset.baseTransform = transform3D;
+card.dataset.baseTransform = transform;
+
+card.dataset.baseScale = scale;
 
 });
 
