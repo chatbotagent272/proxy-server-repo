@@ -319,18 +319,19 @@ height: 20px;
 color: white;
 }
 
-/* ========== 2D COVERFLOW PRODUCT CAROUSEL ========== */
+/* ========== OPTIMALLY POSITIONED 2D COVERFLOW PRODUCT CAROUSEL ========== */
 .product-carousel-container {
 position: relative;
-margin: 15px 0;
-padding: 20px 0;
+margin: 8px auto 15px auto; /* REDUCED top margin from 20px to 8px */
+padding: 0;
 width: 100%;
-height: 220px;
+height: 200px;
 display: flex;
 align-items: center;
 justify-content: center;
-overflow: visible; /* Allow cards to extend beyond container */
+overflow: visible;
 flex-shrink: 0;
+/* Better integration with message flow */
 }
 
 .product-carousel {
@@ -348,13 +349,13 @@ top: 50%;
 left: 0;
 transform-origin: center center;
 width: 140px;
-height: 180px;
+height: 170px;
 background: #fff;
 border-radius: 12px;
 padding: 12px;
 text-decoration: none;
 color: inherit;
-box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+box-shadow: 0 6px 25px rgba(0,0,0,0.12);
 display: flex;
 flex-direction: column;
 align-items: center;
@@ -369,16 +370,22 @@ transform: translateY(-50%);
 }
 
 .product-card:hover {
-/* Enhance the base scale for hover effect */
-transform: translateY(-50%) scale(calc(var(--base-scale, 1) * 1.05)) !important;
-box-shadow: 0 12px 30px rgba(0,0,0,0.25) !important;
+/* Enhance the base scale for hover effect - only for visible cards */
+box-shadow: 0 12px 35px rgba(0,0,0,0.2) !important;
 border-color: var(--chat-widget-primary-color) !important;
-z-index: 100 !important;
+z-index: 150 !important;
+/* Scale enhancement based on current scale */
+transform: translateY(-50%) scale(calc(var(--base-scale, 1) * 1.08)) !important;
+}
+
+.product-card[style*="opacity: 0"] {
+/* Disable hover effects for hidden cards */
+pointer-events: none !important;
 }
 
 .product-card img {
 width: 100%;
-height: 80px;
+height: 75px;
 object-fit: cover;
 border-radius: 8px;
 margin-bottom: 8px;
@@ -399,7 +406,7 @@ overflow: hidden;
 color: #1e293b;
 flex-grow: 1;
 text-align: center;
-min-height: 32px;
+min-height: 30px;
 }
 
 .product-price-container {
@@ -432,8 +439,8 @@ transform: translateY(-50%);
 background: rgba(255,255,255,0.95);
 border: 1px solid #e2e8f0;
 border-radius: 50%;
-width: 40px;
-height: 40px;
+width: 38px;
+height: 38px;
 display: flex;
 align-items: center;
 justify-content: center;
@@ -459,11 +466,11 @@ transform: translateY(-50%) scale(0.95);
 }
 
 .carousel-arrow.prev {
-left: 20px;
+left: 15px;
 }
 
 .carousel-arrow.next {
-right: 20px;
+right: 15px;
 }
 
 /* Mobile Responsive Styles */
@@ -490,14 +497,14 @@ height: 24px;
 }
 
 .product-carousel-container {
-height: 200px;
-margin: 12px 0;
-padding: 15px 0;
+height: 180px;
+margin: 6px auto 12px auto; /* REDUCED mobile margins too */
+padding: 0;
 }
 
 .product-card {
 width: 120px;
-height: 160px;
+height: 155px;
 padding: 10px;
 }
 
@@ -519,17 +526,17 @@ font-size: 10px;
 }
 
 .carousel-arrow {
-width: 36px;
-height: 36px;
+width: 34px;
+height: 34px;
 font-size: 16px;
 }
 
 .carousel-arrow.prev {
-left: 15px;
+left: 12px;
 }
 
 .carousel-arrow.next {
-right: 15px;
+right: 12px;
 }
 
 .chat-widget-header {
