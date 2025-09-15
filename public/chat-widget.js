@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating 2D coverflow carousel with products:', products);
+console.log('Creating centered 2D coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -606,7 +606,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up centered 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -718,7 +718,7 @@ const cardWidth = 140;
 
 const centerX = containerWidth / 2;
 
-console.log('Updating 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating centered 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -727,6 +727,8 @@ const distance = index - centerIndex;
 const absDistance = Math.abs(distance);
 
 // Calculate 2D position and styling based on distance from center
+
+// Only show 3 cards: center + immediate left/right neighbors
 
 let translateX = 0;
 
@@ -738,11 +740,11 @@ let zIndex = 10;
 
 if (distance === 0) {
 
-// Center card
+// Center card - main focus
 
 translateX = centerX - (cardWidth / 2);
 
-scale = 1.1;
+scale = 1.15;
 
 opacity = 1;
 
@@ -750,45 +752,29 @@ zIndex = 30;
 
 } else if (absDistance === 1) {
 
-// Adjacent cards
+// Adjacent cards - left and right neighbors
 
-const offset = distance > 0 ? 80 : -80; // Right or left of center
+const offset = distance > 0 ? 100 : -100; // More spacing for better coverflow effect
 
 translateX = centerX - (cardWidth / 2) + offset;
 
-scale = 0.9;
+scale = 0.85;
 
-opacity = 0.8;
+opacity = 0.7;
 
 zIndex = 20;
 
-} else if (absDistance === 2) {
-
-// Second level cards
-
-const offset = distance > 0 ? 140 : -140;
-
-translateX = centerX - (cardWidth / 2) + offset;
-
-scale = 0.75;
-
-opacity = 0.6;
-
-zIndex = 15;
-
 } else {
 
-// Distant cards
+// Hidden cards - positioned behind center card, invisible
 
-const offset = distance > 0 ? 200 : -200;
-
-translateX = centerX - (cardWidth / 2) + offset;
+translateX = centerX - (cardWidth / 2); // Same position as center
 
 scale = 0.6;
 
-opacity = 0.3;
+opacity = 0; // Completely hidden
 
-zIndex = 10;
+zIndex = 5;
 
 }
 
@@ -802,11 +788,21 @@ card.style.opacity = opacity;
 
 card.style.zIndex = zIndex;
 
-// Store base transform for hover enhancement
+// Store base transform for hover enhancement (only for visible cards)
+
+if (opacity > 0) {
 
 card.dataset.baseTransform = transform;
 
 card.dataset.baseScale = scale;
+
+card.style.pointerEvents = 'auto'; // Enable interactions
+
+} else {
+
+card.style.pointerEvents = 'none'; // Disable interactions for hidden cards
+
+}
 
 });
 
