@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating refined coverflow carousel with products:', products);
+console.log('Creating compact coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -508,7 +508,7 @@ cardLink.appendChild(img);
 
 cardLink.appendChild(title);
 
-// Smart price container with optimized horizontal layout and proper spacing
+// Smart price container with optimized horizontal layout
 
 const priceContainer = this.createElement('div', { className: 'product-price-container' });
 
@@ -556,11 +556,11 @@ priceContainer.appendChild(currentPriceEl);
 
 cardLink.appendChild(priceContainer);
 
-// Add hover event listeners for center-card-only hover effect
+// Add hover event listeners with bulletproof center-only logic
 
-cardLink.addEventListener('mouseenter', () => this.handleCardHover(cardLink, true));
+cardLink.addEventListener('mouseenter', () => this.handleCardHover(cardLink, carousel, true));
 
-cardLink.addEventListener('mouseleave', () => this.handleCardHover(cardLink, false));
+cardLink.addEventListener('mouseleave', () => this.handleCardHover(cardLink, carousel, false));
 
 carousel.appendChild(cardLink);
 
@@ -626,7 +626,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up refined 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up compact 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -738,7 +738,7 @@ const cardWidth = 200; // Large cards
 
 const centerX = containerWidth / 2;
 
-console.log('Updating refined 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating compact 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -820,8 +820,6 @@ card.dataset.baseScale = scale;
 
 card.dataset.baseOpacity = opacity;
 
-card.dataset.cardDistance = distance; // IMPORTANT: Store distance for hover logic
-
 // Enable/disable interactions based on visibility
 
 if (opacity > 0) {
@@ -842,17 +840,29 @@ card.classList.add('hidden-card');
 
 }
 
-handleCardHover(card, isHovering) {
+handleCardHover(card, carousel, isHovering) {
 
-// CRITICAL FIX: Only apply hover effects to CENTER CARD (distance === 0)
+// BULLETPROOF CENTER-ONLY HOVER: Calculate center position in real-time
 
 if (card.classList.contains('hidden-card')) return;
 
-const cardDistance = parseInt(card.dataset.cardDistance) || 0;
+// Get current carousel state
 
-// ONLY allow hover on center card (distance === 0), block side cards
+const currentCenterIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-if (cardDistance !== 0) return;
+const cardIndex = parseInt(card.dataset.index, 10);
+
+// CRITICAL CHECK: Only allow hover if this card is currently the center card
+
+if (cardIndex !== currentCenterIndex) {
+
+console.log('Blocking hover on non-center card:', cardIndex, 'vs center:', currentCenterIndex);
+
+return;
+
+}
+
+console.log('Allowing hover on center card:', cardIndex);
 
 const baseTranslateX = parseFloat(card.dataset.baseTranslateX) || 0;
 
