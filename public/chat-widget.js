@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating centered 2D coverflow carousel with products:', products);
+console.log('Creating tightly positioned 2D coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -542,6 +542,12 @@ priceContainer.appendChild(originalPriceEl);
 
 cardLink.appendChild(priceContainer);
 
+// Add hover event listeners for stable hover effect
+
+cardLink.addEventListener('mouseenter', () => this.handleCardHover(cardLink, true));
+
+cardLink.addEventListener('mouseleave', () => this.handleCardHover(cardLink, false));
+
 carousel.appendChild(cardLink);
 
 });
@@ -606,7 +612,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up centered 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up tightly positioned 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -718,7 +724,7 @@ const cardWidth = 140;
 
 const centerX = containerWidth / 2;
 
-console.log('Updating centered 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating tightly positioned 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -754,7 +760,7 @@ zIndex = 30;
 
 // Adjacent cards - left and right neighbors
 
-const offset = distance > 0 ? 100 : -100; // More spacing for better coverflow effect
+const offset = distance > 0 ? 100 : -100; // Spacing for coverflow effect
 
 translateX = centerX - (cardWidth / 2) + offset;
 
@@ -780,7 +786,7 @@ zIndex = 5;
 
 // Apply 2D transforms
 
-const transform = `translateX(${translateX}px) scale(${scale})`;
+const transform = `translateX(${translateX}px) translateY(-50%) scale(${scale})`;
 
 card.style.transform = transform;
 
@@ -788,23 +794,69 @@ card.style.opacity = opacity;
 
 card.style.zIndex = zIndex;
 
-// Store base transform for hover enhancement (only for visible cards)
-
-if (opacity > 0) {
+// Store complete transform data for stable hover effects
 
 card.dataset.baseTransform = transform;
 
+card.dataset.baseTranslateX = translateX;
+
+card.dataset.baseTranslateY = -50;
+
 card.dataset.baseScale = scale;
 
-card.style.pointerEvents = 'auto'; // Enable interactions
+card.dataset.baseOpacity = opacity;
+
+// Enable/disable interactions based on visibility
+
+if (opacity > 0) {
+
+card.style.pointerEvents = 'auto';
+
+card.classList.remove('hidden-card');
 
 } else {
 
-card.style.pointerEvents = 'none'; // Disable interactions for hidden cards
+card.style.pointerEvents = 'none';
+
+card.classList.add('hidden-card');
 
 }
 
 });
+
+}
+
+handleCardHover(card, isHovering) {
+
+// Only apply hover effects to visible cards
+
+if (card.classList.contains('hidden-card')) return;
+
+const baseTranslateX = parseFloat(card.dataset.baseTranslateX) || 0;
+
+const baseTranslateY = parseFloat(card.dataset.baseTranslateY) || -50;
+
+const baseScale = parseFloat(card.dataset.baseScale) || 1;
+
+if (isHovering) {
+
+// Hover state: maintain exact position, only increase scale slightly
+
+const hoverScale = baseScale * 1.08;
+
+const hoverTransform = `translateX(${baseTranslateX}px) translateY(${baseTranslateY}%) scale(${hoverScale})`;
+
+card.style.transform = hoverTransform;
+
+} else {
+
+// Return to base state
+
+const baseTransform = card.dataset.baseTransform;
+
+card.style.transform = baseTransform;
+
+}
 
 }
 
