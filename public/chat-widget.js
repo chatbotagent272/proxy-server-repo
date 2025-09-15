@@ -450,7 +450,7 @@ return msgDiv;
 
 createCarouselElement(products) {
 
-console.log('Creating tightly positioned 2D coverflow carousel with products:', products);
+console.log('Creating properly spaced coverflow carousel with products:', products);
 
 const container = this.createElement('div', { className: 'product-carousel-container' });
 
@@ -508,11 +508,33 @@ cardLink.appendChild(img);
 
 cardLink.appendChild(title);
 
+// Enhanced price container with horizontal layout
+
 const priceContainer = this.createElement('div', { className: 'product-price-container' });
 
 const isDiscounted = product.originalPrice && parseFloat(product.originalPrice) > parseFloat(product.currentPrice);
 
 if (product.currentPrice) {
+
+if (isDiscounted) {
+
+// Horizontal layout: current | original
+
+const priceText = `${product.currentPrice} ${product.currency} | ${product.originalPrice} ${product.currency}`;
+
+const priceEl = this.createElement('p', {
+
+className: 'product-price-horizontal',
+
+innerHTML: `${product.currentPrice} ${product.currency} | <span class="original-price-inline">${product.originalPrice} ${product.currency}</span>`
+
+});
+
+priceContainer.appendChild(priceEl);
+
+} else {
+
+// Single price only
 
 const currentPriceEl = this.createElement('p', {
 
@@ -526,23 +548,11 @@ priceContainer.appendChild(currentPriceEl);
 
 }
 
-if (isDiscounted) {
-
-const originalPriceEl = this.createElement('p', {
-
-className: 'original-price',
-
-textContent: `${product.originalPrice} ${product.currency}`
-
-});
-
-priceContainer.appendChild(originalPriceEl);
-
 }
 
 cardLink.appendChild(priceContainer);
 
-// Add hover event listeners for stable hover effect
+// Add hover event listeners for stable, reduced hover effect
 
 cardLink.addEventListener('mouseenter', () => this.handleCardHover(cardLink, true));
 
@@ -612,7 +622,7 @@ setup2DCarousel(carousel) {
 
 const currentIndex = parseInt(carousel.dataset.currentIndex, 10);
 
-console.log('Setting up tightly positioned 2D carousel with currentIndex:', currentIndex);
+console.log('Setting up properly spaced 2D carousel with currentIndex:', currentIndex);
 
 // Apply 2D coverflow transforms to all cards
 
@@ -720,11 +730,11 @@ const cards = carousel.querySelectorAll('.product-card');
 
 const containerWidth = carousel.parentElement.offsetWidth;
 
-const cardWidth = 140;
+const cardWidth = 170; // Updated for larger cards
 
 const centerX = containerWidth / 2;
 
-console.log('Updating tightly positioned 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
+console.log('Updating properly spaced 2D styles for centerIndex:', centerIndex, 'containerWidth:', containerWidth);
 
 cards.forEach((card, index) => {
 
@@ -760,7 +770,7 @@ zIndex = 30;
 
 // Adjacent cards - left and right neighbors
 
-const offset = distance > 0 ? 100 : -100; // Spacing for coverflow effect
+const offset = distance > 0 ? 115 : -115; // Adjusted spacing for larger cards
 
 translateX = centerX - (cardWidth / 2) + offset;
 
@@ -840,9 +850,9 @@ const baseScale = parseFloat(card.dataset.baseScale) || 1;
 
 if (isHovering) {
 
-// Hover state: maintain exact position, only increase scale slightly
+// REDUCED hover state: maintain exact position, smaller scale increase
 
-const hoverScale = baseScale * 1.08;
+const hoverScale = baseScale * 1.04; // REDUCED from 1.08 to 1.04 (4% instead of 8%)
 
 const hoverTransform = `translateX(${baseTranslateX}px) translateY(${baseTranslateY}%) scale(${hoverScale})`;
 
