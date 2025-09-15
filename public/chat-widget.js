@@ -378,8 +378,7 @@
 
     setupCarousel(carousel) {
         const cardWidth = 140; // from CSS
-        const cardGap = 10; // A visible gap between cards
-        const stepWidth = cardWidth + cardGap;
+        const stepWidth = 100; // Overlap cards by setting this less than cardWidth
         const initialIndex = parseInt(carousel.dataset.currentIndex, 10);
         
         const containerWidth = carousel.parentElement.offsetWidth;
@@ -402,8 +401,7 @@
         let currentIndex = parseInt(carousel.dataset.currentIndex, 10);
         const productCount = parseInt(carousel.dataset.productCount, 10);
         const cardWidth = 140;
-        const cardGap = 10;
-        const stepWidth = cardWidth + cardGap;
+        const stepWidth = 100; // Must match setupCarousel
 
         currentIndex += direction;
         carousel.dataset.currentIndex = currentIndex; // Update state immediately
@@ -429,7 +427,6 @@
             }
 
             if (needsReset) {
-                // Temporarily disable transitions on cards to prevent flicker during reset
                 const cards = carousel.querySelectorAll('.product-card');
                 cards.forEach(card => card.style.transition = 'none');
 
@@ -439,10 +436,8 @@
                 carousel.style.transform = `translateX(${resetX}px)`;
                 this.updateCarouselStyles(carousel, currentIndex);
                 
-                // Use a minimal timeout to allow the browser to apply the reset position
-                // without animation, then re-enable transitions for the next move.
                 setTimeout(() => {
-                    cards.forEach(card => card.style.transition = ''); // Reset to stylesheet rule
+                    cards.forEach(card => card.style.transition = ''); 
                     carousel.dataset.isTransitioning = 'false';
                 }, 20);
             } else {
@@ -457,17 +452,19 @@
         const cards = carousel.querySelectorAll('.product-card');
         cards.forEach((card, index) => {
             const distance = index - centerIndex;
+            const absDistance = Math.abs(distance);
             
             if (distance === 0) {
-                // Center card
-                card.style.transform = 'scale(1.05)';
+                // Center card: flat, forward, and larger
+                card.style.transform = 'rotateY(0deg) translateZ(50px) scale(1.05)';
                 card.style.opacity = '1';
                 card.style.zIndex = '20';
             } else {
-                // Side cards
-                card.style.transform = 'scale(1)';
-                card.style.opacity = '0.7';
-                card.style.zIndex = '10';
+                // Side cards: angled, pushed back, and smaller
+                const side = Math.sign(distance);
+                card.style.transform = `rotateY(${side * 45}deg) translateZ(-50px) scale(0.8)`;
+                card.style.opacity = '0.6';
+                card.style.zIndex = `${10 - absDistance}`;
             }
         });
     }
