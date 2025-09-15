@@ -319,10 +319,10 @@ height: 20px;
 color: white;
 }
 
-/* ========== OPTIMALLY POSITIONED 2D COVERFLOW PRODUCT CAROUSEL ========== */
+/* ========== TIGHTLY POSITIONED 2D COVERFLOW PRODUCT CAROUSEL ========== */
 .product-carousel-container {
 position: relative;
-margin: 8px auto 15px auto; /* REDUCED top margin from 20px to 8px */
+margin: 2px auto 15px auto; /* MINIMAL top margin for tight positioning */
 padding: 0;
 width: 100%;
 height: 200px;
@@ -331,7 +331,6 @@ align-items: center;
 justify-content: center;
 overflow: visible;
 flex-shrink: 0;
-/* Better integration with message flow */
 }
 
 .product-carousel {
@@ -362,24 +361,22 @@ align-items: center;
 text-align: center;
 border: 1px solid #e2e8f0;
 will-change: transform, opacity;
-transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
             opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
             box-shadow 0.3s ease,
             border-color 0.3s ease;
-transform: translateY(-50%);
 }
 
 .product-card:hover {
-/* Enhance the base scale for hover effect - only for visible cards */
+/* Enhanced hover effect with red border and slight growth - position stays fixed */
 box-shadow: 0 12px 35px rgba(0,0,0,0.2) !important;
 border-color: var(--chat-widget-primary-color) !important;
 z-index: 150 !important;
-/* Scale enhancement based on current scale */
-transform: translateY(-50%) scale(calc(var(--base-scale, 1) * 1.08)) !important;
+/* Transform is handled by JavaScript to maintain exact position */
 }
 
-.product-card[style*="opacity: 0"] {
-/* Disable hover effects for hidden cards */
+.product-card.hidden-card {
+/* Hidden cards should not respond to hover */
 pointer-events: none !important;
 }
 
@@ -498,7 +495,7 @@ height: 24px;
 
 .product-carousel-container {
 height: 180px;
-margin: 6px auto 12px auto; /* REDUCED mobile margins too */
+margin: 1px auto 12px auto; /* MINIMAL mobile margin too */
 padding: 0;
 }
 
