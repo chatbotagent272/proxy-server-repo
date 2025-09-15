@@ -324,7 +324,7 @@
   /* ========== OPTIMIZED LAYOUT PRODUCT CAROUSEL ========== */
   .product-carousel-container {
   position: relative;
-  margin: 8px auto 8px auto;
+  margin: 8px auto 4px auto;
   padding: 0;
   width: 100%;
   height: 260px; /* INCREASED from 250px to 260px for better proportions */
@@ -606,63 +606,6 @@
   .chat-widget-send-icon {
   width: 18px;
   height: 18px;
-  }
-  }
-  
-  /* Dark mode support */
-  @media (prefers-color-scheme: dark) {
-  .chat-widget-panel {
-  background-color: #1f2937;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  }
-  
-  .chat-widget-message.assistant {
-  background-color: #374151;
-  color: #f9fafb;
-  }
-  
-  .chat-widget-input-area {
-  background: #374151;
-  border-top-color: #4b5563;
-  }
-  
-  .chat-widget-input-area input {
-  background: #1f2937;
-  border-color: #4b5563;
-  color: #f9fafb;
-  }
-  
-  .chat-widget-input-area input::placeholder {
-  color: #9ca3af;
-  }
-  
-  .product-card {
-  background: #374151;
-  border-color: #4b5563;
-  }
-  
-  .product-card img {
-  background: #374151;
-  }
-  
-  .product-card .product-title {
-  color: #f9fafb;
-  }
-  
-  .product-card .original-price,
-  .product-card .original-price-inline {
-  color: #9ca3af;
-  }
-  
-  .carousel-arrow {
-  background: rgba(55, 65, 81, 0.95);
-  border-color: #4b5563;
-  color: #f9fafb;
-  }
-  
-  .carousel-arrow:hover {
-  background: #374151;
-  border-color: var(--chat-widget-primary-color);
   }
   }
   
