@@ -183,7 +183,7 @@
   .chat-widget-message {
   padding: 10px 15px;
   border-radius: 18px;
-  max-width: 80%;
+  max-width: 70%;
   word-wrap: break-word;
   line-height: 1.4;
   animation: messageSlideIn 0.3s ease-out;
@@ -204,7 +204,7 @@
   .chat-widget-message p {
   margin: 0;
   line-height: 1.4;
-  font-size: 14px;
+  font-size: 13px;
   }
   
   .chat-widget-message.assistant {
@@ -324,7 +324,7 @@
   /* ========== OPTIMIZED LAYOUT PRODUCT CAROUSEL ========== */
   .product-carousel-container {
   position: relative;
-  margin: 8px auto 15px auto;
+  margin: 8px auto 8px auto;
   padding: 0;
   width: 100%;
   height: 260px; /* INCREASED from 250px to 260px for better proportions */
@@ -349,7 +349,7 @@
   top: 50%;
   left: 0;
   transform-origin: center center;
-  width: 190px;
+  width: 180px;
   height: 230px; /* INCREASED from 220px to 230px for content accommodation */
   background: #fff;
   border-radius: 12px;
@@ -367,6 +367,7 @@
                 opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1),
                 box-shadow 0.3s ease,
                 border-color 0.3s ease;
+  font-family: inherit;
   }
   
   .product-card:hover {
@@ -419,7 +420,7 @@
   
   /* Standard vertical price layout for single prices */
   .product-card .product-price {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--chat-widget-primary-color);
   margin: 0;
@@ -434,7 +435,7 @@
   
   /* Optimized horizontal price layout for discounted items */
   .product-card .product-price-horizontal {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--chat-widget-primary-color);
   margin: 0;
@@ -529,14 +530,13 @@
   height: 85px; /* ADJUSTED mobile image height */
   margin-bottom: 6px;
   object-fit: contain;
-  background: #f8f9fa;
+  background: #fff;
   }
   
   .product-card .product-title {
   font-size: 11px;
   margin: 0 0 6px 0;
   min-height: 50px;
-  -webkit-line-clamp: 3;
   }
   
   .product-card .product-price {
